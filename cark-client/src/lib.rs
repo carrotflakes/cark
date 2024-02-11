@@ -1,0 +1,52 @@
+pub mod connection;
+pub mod game;
+pub mod systems;
+
+pub fn draw<C, G>(glyphs: &mut C, ctx: piston_window::Context, g: &mut G, game: &mut game::Game)
+where
+    C: piston_window::character::CharacterCache,
+    G: piston_window::Graphics<Texture = <C as piston_window::character::CharacterCache>::Texture>,
+{
+    use piston_window::{ellipse, rectangle, text, Transformed};
+
+    text(
+        [0.0, 0.0, 0.0, 1.0],
+        12,
+        "hello",
+        glyphs,
+        ctx.transform.trans(10.0, 20.0),
+        g,
+    )
+    .unwrap();
+
+    let width = game.field().width();
+    let height = game.field().height();
+    let data = game.field().data();
+    for x in 0..width {
+        for y in 0..height {
+            let cell = data[(y * width + x) as usize];
+            rectangle(
+                if cell == 0 {
+                    [1.0, 0.0, 0.0, 1.0]
+                } else {
+                    [1.0, 1.0, 0.0, 1.0]
+                },
+                [20.0 + x as f64 * 10.0, 20.0 + y as f64 * 10.0, 10.0, 10.0],
+                ctx.transform,
+                g,
+            );
+        }
+    }
+
+    ellipse(
+        [0.0, 0.0, 1.0, 1.0],
+        [
+            20.0 + game.character[0].position[0] as f64 * 10.0,
+            20.0 + game.character[0].position[1] as f64 * 10.0,
+            10.0,
+            10.0,
+        ],
+        ctx.transform,
+        g,
+    );
+}

@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = [
+  "cark-server",
+  "cark-client",
+  "cark-common",
+]
