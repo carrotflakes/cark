@@ -7,19 +7,17 @@ use crate::{IncomingEvent, OutgoingEvent};
 pub struct Connection {
     pub stream: TcpStream,
     pub buf: Vec<u8>,
-    pub step: usize,
     pub closed: bool,
 }
 
 impl Connection {
     pub fn new(stream: TcpStream) -> std::io::Result<Self> {
-        log::info!("Client joined: {:?}", stream);
+        log::info!("Client connected: {:?}", stream);
 
         stream.set_nonblocking(true)?;
         Ok(Self {
             stream,
             buf: vec![],
-            step: 0,
             closed: false,
         })
     }
@@ -44,7 +42,10 @@ impl Connection {
                     field,
                 } => {
                     if *connection_id == self.id() {
-                        cark_common::to_io(field, &mut self.stream).unwrap();
+                        let message = cark_common::ServerMessage::Joined(cark_common::Joined {
+                            field: field.clone(),
+                        });
+                        cark_common::to_io(&message, &mut self.stream).unwrap();
                         self.stream.flush()?;
                     }
                 }
@@ -55,26 +56,26 @@ impl Connection {
             }
         }
 
-        if self.step == 0 {
-            self.stream.write(b"Hello, world!\n")?;
-            self.stream.flush()?;
-            self.step = 1;
-            push_incoming_event(IncomingEvent::Join {
-                connection_id: self.id(),
-            });
-        }
-        if self.step == 1 {
-            self.stream.read_to_end(&mut self.buf)?;
-            log::info!("Received: {:?}", self.buf);
-            if self.buf.is_empty() {
-                log::info!("Client left: {:?}", self.stream);
-                self.closed = true;
+        match self.stream.read_to_end(&mut self.buf) {
+            Ok(_) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {}
+            Err(e) => return Err(e),
+        };
+
+        while !self.buf.is_empty() {
+            println!("{}", self.buf.len());
+            let message: cark_common::ClientMessage = cark_common::read(&mut self.buf).unwrap();
+            match message {
+                cark_common::ClientMessage::Join(_join) => {
+                    log::info!("Receive ClientMessage::Join");
+                    push_incoming_event(IncomingEvent::Join {
+                        connection_id: self.id(),
+                    });
+                }
+                cark_common::ClientMessage::PublicChatMessage(_) => todo!(),
             }
-            let mes = String::from_utf8(self.buf.clone()).unwrap();
-            push_incoming_event(IncomingEvent::from(mes));
-            self.buf.clear();
-            // self.step = 2;
         }
+
         Ok(())
     }
 

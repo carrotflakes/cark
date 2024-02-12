@@ -1,8 +1,7 @@
 use crate::game::Game;
-use piston_window::{PressEvent, ReleaseEvent};
 
 pub fn system_player_move() -> impl FnMut(&mut Game, &piston_window::Event) {
-    use piston_window::{Button, Key, UpdateEvent};
+    use piston_window::{Button, Key, PressEvent, ReleaseEvent, UpdateEvent};
 
     let mut dx = 0.0;
     let mut dy = 0.0;
@@ -10,16 +9,16 @@ pub fn system_player_move() -> impl FnMut(&mut Game, &piston_window::Event) {
     return move |game: &mut Game, event: &piston_window::Event| {
         if let Some(Button::Keyboard(key)) = event.press_args() {
             match key {
-                Key::Up => {
+                Key::W => {
                     dy -= 0.1;
                 }
-                Key::Down => {
+                Key::S => {
                     dy += 0.1;
                 }
-                Key::Left => {
+                Key::A => {
                     dx -= 0.1;
                 }
-                Key::Right => {
+                Key::D => {
                     dx += 0.1;
                 }
                 _ => {}
@@ -28,16 +27,16 @@ pub fn system_player_move() -> impl FnMut(&mut Game, &piston_window::Event) {
 
         if let Some(Button::Keyboard(key)) = event.release_args() {
             match key {
-                Key::Up => {
+                Key::W => {
                     dy += 0.1;
                 }
-                Key::Down => {
+                Key::S => {
                     dy -= 0.1;
                 }
-                Key::Left => {
+                Key::A => {
                     dx += 0.1;
                 }
-                Key::Right => {
+                Key::D => {
                     dx -= 0.1;
                 }
                 _ => {}

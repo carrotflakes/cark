@@ -2,7 +2,10 @@ use cark_client::{game::Game, systems::system_player_move};
 use piston_window::prelude::*;
 
 fn main() {
-        let addr = "127.0.0.1:8080";
+    std::env::set_var("RUST_LOG", "info");
+    env_logger::init();
+
+    let addr = "127.0.0.1:8080";
 
     let mut window: PistonWindow = WindowSettings::new("CARK", [800, 600])
         .exit_on_esc(true)

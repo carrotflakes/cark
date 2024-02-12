@@ -206,7 +206,9 @@ name = "cark-client"
 version = "0.1.0"
 dependencies = [
  "cark-common",
+ "env_logger",
  "find_folder",
+ "log",
  "piston2d-touch_visualizer",
  "piston_window",
  "serde",

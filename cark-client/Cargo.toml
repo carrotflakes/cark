@@ -9,3 +9,6 @@ serde = { version = "1.0", features = ["derive"] }
 piston_window = "0"
 piston2d-touch_visualizer = "0"
 find_folder = "0"
+
+log = "0.4"
+env_logger = "0.11"

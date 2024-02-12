@@ -19,6 +19,7 @@ impl Global {
         mut outgoing_events: impl FnMut(OutgoingEvent),
     ) {
         for event in incoming_events.drain(..) {
+            log::info!("{:?}", &event);
             match event {
                 IncomingEvent::Join { connection_id } => {
                     outgoing_events(OutgoingEvent::Joined {
@@ -35,6 +36,7 @@ impl Global {
     }
 }
 
+#[derive(Debug)]
 pub enum IncomingEvent {
     Join { connection_id: u64 },
     Message { message: String },
