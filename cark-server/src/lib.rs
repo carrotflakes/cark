@@ -1,5 +1,7 @@
 pub mod connection;
 
+use cark_common::{ClientMessage, ServerMessage};
+
 pub struct Global {
     pub messages: Vec<String>,
     field: cark_common::Field,
@@ -20,16 +22,24 @@ impl Global {
     ) {
         for event in incoming_events.drain(..) {
             log::info!("{:?}", &event);
-            match event {
-                IncomingEvent::Join { connection_id } => {
-                    outgoing_events(OutgoingEvent::Joined {
-                        connection_id,
+            match &event.message {
+                ClientMessage::Join(_) => outgoing_events(OutgoingEvent {
+                    connection_id: Some(event.connection_id),
+                    message: ServerMessage::Joined(cark_common::Joined {
                         field: self.field.clone(),
-                    });
+                    }),
+                }),
+                ClientMessage::PublicChatMessage(message) => {
+                    self.messages.push(message.text.clone());
+                    // outgoing_events(OutgoingEvent::from(message.text.clone()));
                 }
-                IncomingEvent::Message { message } => {
-                    self.messages.push(message.clone());
-                    outgoing_events(OutgoingEvent::from(message));
+                ClientMessage::UpdateField(x) => {
+                    self.field.data[(x.position[1] * self.field.width + x.position[0]) as usize] =
+                        x.value;
+                    outgoing_events(OutgoingEvent {
+                        connection_id: None,
+                        message: ServerMessage::UpdateField(x.clone()),
+                    });
                 }
             }
         }
@@ -37,29 +47,12 @@ impl Global {
 }
 
 #[derive(Debug)]
-pub enum IncomingEvent {
-    Join { connection_id: u64 },
-    Message { message: String },
+pub struct IncomingEvent {
+    connection_id: u64,
+    message: ClientMessage,
 }
 
-impl From<String> for IncomingEvent {
-    fn from(message: String) -> Self {
-        Self::Message { message }
-    }
-}
-
-pub enum OutgoingEvent {
-    Joined {
-        connection_id: u64,
-        field: cark_common::Field,
-    },
-    Message {
-        message: String,
-    },
-}
-
-impl From<String> for OutgoingEvent {
-    fn from(message: String) -> Self {
-        Self::Message { message }
-    }
+pub struct OutgoingEvent {
+    connection_id: Option<u64>,
+    message: ServerMessage,
 }

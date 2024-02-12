@@ -8,7 +8,7 @@ use crate::game::{Field, Game};
 pub struct Connection {
     pub stream: TcpStream,
     pub buf: Vec<u8>,
-    first: bool,
+    outgoing_events: Vec<cark_common::ClientMessage>,
 }
 
 impl Connection {
@@ -18,21 +18,19 @@ impl Connection {
         Ok(Self {
             stream,
             buf: Vec::new(),
-            first: true,
+            outgoing_events: vec![cark_common::ClientMessage::Join(cark_common::Join {
+                name: "player1".to_string(),
+            })],
         })
     }
 
+    pub fn push_event(&mut self, event: cark_common::ClientMessage) {
+        self.outgoing_events.push(event);
+    }
+
     pub fn process(&mut self, game: &mut Game) -> Result<(), std::io::Error> {
-        if self.first {
-            self.first = false;
-            log::info!("Joining");
-            cark_common::to_io(
-                &cark_common::ClientMessage::Join(cark_common::Join {
-                    name: "player1".to_string(),
-                }),
-                &mut self.stream,
-            )
-            .unwrap();
+        for event in self.outgoing_events.drain(..) {
+            cark_common::to_io(&event, &mut self.stream).unwrap();
             self.stream.flush()?;
         }
 
@@ -43,7 +41,11 @@ impl Connection {
         };
 
         while !self.buf.is_empty() {
-            let message: cark_common::ServerMessage = cark_common::read(&mut self.buf).unwrap();
+            let message: cark_common::ServerMessage = match cark_common::read(&mut self.buf) {
+                Ok(r) => r,
+                Err(cark_common::PostcardError::DeserializeUnexpectedEnd) => break,
+                Err(e) => panic!("{:?}", e),
+            };
             log::info!("Receive {:?}", &message);
             match message {
                 cark_common::ServerMessage::Joined(joined) => {
@@ -52,6 +54,14 @@ impl Connection {
                         joined.field.height,
                         joined.field.data,
                     ));
+                }
+                cark_common::ServerMessage::UpdateField(update_field) => {
+                    let mut field = game.field().to_owned();
+                    field.data_mut()[update_field.position[1] as usize
+                        * game.field().width() as usize
+                        + update_field.position[0] as usize] = update_field.value;
+                    game.set_field(field);
+                    // TODO: how to update the field?
                 }
             }
         }

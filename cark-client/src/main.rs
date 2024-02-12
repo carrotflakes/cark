@@ -12,16 +12,20 @@ fn main() {
         .build()
         .unwrap();
 
-    let assets = find_folder::Search::ParentsThenKids(5, 2)
-        .for_folder("assets")
-        .unwrap();
+    let assets = find_folder::Search::ParentsThenKids(4, 2)
+        .for_folder("cark-client")
+        .unwrap()
+        .join("assets");
     let mut glyphs = window.load_font(assets.join("FiraSans-Bold.ttf")).unwrap();
 
     let mut touch_visualizer = touch_visualizer::TouchVisualizer::new();
 
     let mut game = Game::new();
-    let mut systems: Vec<Box<dyn FnMut(&mut Game, &piston_window::Event)>> =
-        vec![Box::new(system_player_move())];
+    let mut systems: Vec<
+        Box<
+            dyn FnMut(&mut Game, &piston_window::Event, &mut dyn FnMut(cark_common::ClientMessage)),
+        >,
+    > = vec![Box::new(system_player_move())];
 
     let mut connection = cark_client::connection::Connection::new(addr).unwrap();
 
@@ -29,7 +33,9 @@ fn main() {
         touch_visualizer.event(window.size(), &event);
 
         for system in &mut systems {
-            system(&mut game, &event);
+            system(&mut game, &event, &mut |message| {
+                connection.push_event(message)
+            });
         }
 
         connection.process(&mut game).or_else(map_err).unwrap();

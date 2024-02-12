@@ -26,6 +26,19 @@ impl Connection {
         self.stream.as_raw_fd() as u64
     }
 
+    fn write(&mut self, message: &cark_common::ServerMessage) -> std::io::Result<()> {
+        match cark_common::to_io(message, &mut self.stream) {
+            Ok(_) => {}
+            Err(cark_common::PostcardError::SerializeBufferFull) => {
+                log::info!("Client disconnected: {:?}", self.stream);
+                self.closed = true;
+                return Ok(());
+            }
+            Err(e) => panic!("{:?}", e),
+        }
+        self.stream.flush()
+    }
+
     pub fn process(
         &mut self,
         mut push_incoming_event: impl FnMut(IncomingEvent),
@@ -36,44 +49,35 @@ impl Connection {
         }
 
         for event in outgoing_events {
-            match event {
-                OutgoingEvent::Joined {
-                    connection_id,
-                    field,
-                } => {
-                    if *connection_id == self.id() {
-                        let message = cark_common::ServerMessage::Joined(cark_common::Joined {
-                            field: field.clone(),
-                        });
-                        cark_common::to_io(&message, &mut self.stream).unwrap();
-                        self.stream.flush()?;
-                    }
-                }
-                OutgoingEvent::Message { message } => {
-                    self.stream.write(message.as_bytes())?;
-                    self.stream.flush()?;
-                }
+            if event.connection_id.is_none() || event.connection_id.unwrap() == self.id() {
+                self.write(&event.message)?;
             }
         }
 
         match self.stream.read_to_end(&mut self.buf) {
-            Ok(_) => {}
+            Ok(len) => {
+                if len == 0 {
+                    log::info!("Client disconnected: {:?}", self.stream);
+                    self.closed = true;
+                    return Ok(());
+                }
+            }
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {}
             Err(e) => return Err(e),
         };
 
         while !self.buf.is_empty() {
-            println!("{}", self.buf.len());
-            let message: cark_common::ClientMessage = cark_common::read(&mut self.buf).unwrap();
-            match message {
-                cark_common::ClientMessage::Join(_join) => {
-                    log::info!("Receive ClientMessage::Join");
-                    push_incoming_event(IncomingEvent::Join {
-                        connection_id: self.id(),
-                    });
-                }
-                cark_common::ClientMessage::PublicChatMessage(_) => todo!(),
-            }
+            // println!("{:?}", &self.buf);
+            let message: cark_common::ClientMessage = match cark_common::read(&mut self.buf) {
+                Ok(r) => r,
+                Err(cark_common::PostcardError::DeserializeUnexpectedEnd) => break,
+                Err(e) => panic!("{:?}", e),
+            };
+            self.buf.clear();
+            push_incoming_event(IncomingEvent {
+                connection_id: self.id(),
+                message,
+            });
         }
 
         Ok(())

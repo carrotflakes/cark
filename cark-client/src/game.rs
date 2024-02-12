@@ -24,6 +24,7 @@ impl Game {
     }
 }
 
+#[derive(Clone)]
 pub struct Field {
     width: u32,
     height: u32,
@@ -62,6 +63,10 @@ impl Field {
 
     pub fn data(&self) -> &[u8] {
         &self.data
+    }
+
+    pub fn data_mut(&mut self) -> &mut [u8] {
+        &mut self.data
     }
 }
 

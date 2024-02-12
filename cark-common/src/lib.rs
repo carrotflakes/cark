@@ -22,6 +22,12 @@ pub struct Joined {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct UpdateField {
+    pub position: [u32; 2],
+    pub value: u8,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct PublicChatMessage {
     pub text: String,
 }
@@ -30,11 +36,13 @@ pub struct PublicChatMessage {
 pub enum ClientMessage {
     Join(Join),
     PublicChatMessage(PublicChatMessage),
+    UpdateField(UpdateField),
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub enum ServerMessage {
     Joined(Joined),
+    UpdateField(UpdateField),
 }
 
 pub use postcard::to_io;
@@ -45,6 +53,8 @@ pub fn read<T: serde::de::DeserializeOwned>(buf: &mut Vec<u8>) -> Result<T, post
     buf.drain(..len);
     Ok(x)
 }
+
+pub type PostcardError = postcard::Error;
 
 impl Field {
     pub fn new(width: u32, height: u32) -> Self {
