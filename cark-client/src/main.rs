@@ -16,7 +16,7 @@ fn main() {
     let server_addr_tcp = format!("{}:8080", ip);
     let server_addr_udp = format!("{}:8081", ip);
 
-    let mut window: PistonWindow = WindowSettings::new("CARK", [800, 600])
+    let mut window: PistonWindow = WindowSettings::new("CARK", [800 / 2, 600 / 2])
         .exit_on_esc(true)
         .build()
         .unwrap();
@@ -38,9 +38,13 @@ fn main() {
     let mut udp = Udp::new(&server_addr_udp).unwrap();
     let mut connection = Connection::new(&server_addr_tcp).unwrap();
 
-    connection.push_event(ClientMessage::Join(cark_common::model::Join {
-        name: "Player".to_owned(),
-    }));
+    let name = (std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis()
+        % 1000)
+        .to_string();
+    connection.push_event(ClientMessage::Join(cark_common::model::Join { name }));
 
     while let Some(event) = window.next() {
         touch_visualizer.event(window.size(), &event);
@@ -100,8 +104,8 @@ fn handle_event(
             ));
             game.characters = joined
                 .characters
-                .iter()
-                .map(|c| cark_client::game::Character::new(c.id, "Player".to_string(), c.position))
+                .into_iter()
+                .map(|c| cark_client::game::Character::new(c.id, c.name, c.position))
                 .collect();
             game.player_id = joined.user_id;
         }
@@ -119,18 +123,15 @@ fn handle_event(
         } => {
             if let Some(character) = game.characters.iter_mut().find(|c| c.id() == user_id) {
                 character.position = position;
-                // character.velocity = velocity;
+                character.velocity = velocity;
             }
         }
-        ServerMessage::PlayerJoined { user_id, position } => {
-            if game.characters.iter().any(|c| c.id() == user_id) {
+        ServerMessage::PlayerJoined { id, name, position } => {
+            if game.characters.iter().any(|c| c.id() == id) {
                 return;
             }
-            game.characters.push(cark_client::game::Character::new(
-                user_id,
-                "Player?".to_string(),
-                position,
-            ));
+            game.characters
+                .push(cark_client::game::Character::new(id, name, position));
         }
         ServerMessage::PlayerLeft { user_id } => {
             game.characters.retain(|c| c.id() != user_id);

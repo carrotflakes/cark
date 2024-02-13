@@ -14,6 +14,7 @@ pub struct Field {
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Character {
     pub id: u64,
+    pub name: String,
     pub position: [f32; 2],
 }
 
@@ -31,6 +32,7 @@ pub struct Joined {
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct JoinedCharacter {
     pub id: u64,
+    pub name: String,
     pub position: [f32; 2],
 }
 
@@ -62,7 +64,8 @@ pub enum ServerMessage {
     Joined(Joined),
     UpdateField(UpdateField),
     PlayerJoined {
-        user_id: u64,
+        id: u64,
+        name: String,
         position: [f32; 2],
     },
     PlayerLeft {

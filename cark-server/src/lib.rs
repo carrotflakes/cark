@@ -34,6 +34,7 @@ impl Global {
                     let position = [1.0, 1.0];
                     self.characters.push(Character {
                         id: user_id,
+                        name: join.name.clone(),
                         position,
                     });
                     push_tcp_event(OutgoingEvent {
@@ -46,6 +47,7 @@ impl Global {
                                 .iter()
                                 .map(|c| JoinedCharacter {
                                     id: c.id,
+                                    name: c.name.clone(),
                                     position: c.position,
                                 })
                                 .collect(),
@@ -53,7 +55,11 @@ impl Global {
                     });
                     push_tcp_event(OutgoingEvent {
                         connection_id: None,
-                        message: ServerMessage::PlayerJoined { user_id, position },
+                        message: ServerMessage::PlayerJoined {
+                            id: user_id,
+                            name: join.name.clone(),
+                            position,
+                        },
                     });
                 }
                 ClientMessage::Leave => {

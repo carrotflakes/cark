@@ -76,11 +76,17 @@ pub struct Character {
     id: u64,
     name: String,
     pub position: [f32; 2],
+    pub velocity: [f32; 2],
 }
 
 impl Character {
     pub fn new(id: u64, name: String, position: [f32; 2]) -> Self {
-        Self { id, name, position }
+        Self {
+            id,
+            name,
+            position,
+            velocity: [0.0, 0.0],
+        }
     }
 
     pub fn id(&self) -> u64 {
