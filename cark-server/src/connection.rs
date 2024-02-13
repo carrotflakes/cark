@@ -1,6 +1,5 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use std::os::fd::AsRawFd;
 
 use crate::{IncomingEvent, OutgoingEvent};
 
@@ -23,7 +22,18 @@ impl Connection {
     }
 
     pub fn id(&self) -> u64 {
-        self.stream.as_raw_fd() as u64
+        #[cfg(any(unix, target_os = "wasi"))]
+        {
+            use std::os::fd::AsRawFd;
+
+            self.stream.as_raw_fd() as u64
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::io::AsRawSocket;
+
+            self.stream.as_raw_socket() as u64
+        }
     }
 
     fn write(&mut self, message: &cark_common::model::ServerMessage) -> std::io::Result<()> {

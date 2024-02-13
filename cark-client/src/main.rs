@@ -12,7 +12,15 @@ fn main() {
     env_logger::init();
 
     // ip a show dev eth0
-    let ip = option_env!("CARK_SERVER_IP").unwrap_or("127.0.0.1");
+    let mut ip = "127.0.0.1".to_owned();
+    if let Ok(f) = std::fs::File::open("cark.txt") {
+        let mut reader = std::io::BufReader::new(f);
+        let mut s = String::new();
+        std::io::Read::read_to_string(&mut reader, &mut s).unwrap();
+        ip = s.trim().to_owned();
+    }
+    log::info!("CARK_SERVER_IP: {:?}", ip);
+
     let server_addr_tcp = format!("{}:8080", ip);
     let server_addr_udp = format!("{}:8081", ip);
 
@@ -121,6 +129,9 @@ fn handle_event(
             position,
             velocity,
         } => {
+            if user_id == game.player_id {
+                return;
+            }
             if let Some(character) = game.characters.iter_mut().find(|c| c.id() == user_id) {
                 character.position = position;
                 character.velocity = velocity;
