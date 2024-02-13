@@ -10,19 +10,10 @@ where
 {
     use piston_window::{ellipse, rectangle, text, Transformed};
 
-    text(
-        [0.0, 0.0, 0.0, 1.0],
-        12,
-        "hello",
-        glyphs,
-        ctx.transform.trans(10.0, 20.0),
-        g,
-    )
-    .unwrap();
-
     let width = game.field().width();
     let height = game.field().height();
     let data = game.field().data();
+    let transform = ctx.transform.trans(20.0, 20.0);
     for x in 0..width {
         for y in 0..height {
             let cell = data[(y * width + x) as usize];
@@ -32,19 +23,19 @@ where
                 } else {
                     [1.0, 1.0, 0.0, 1.0]
                 },
-                [20.0 + x as f64 * 10.0, 20.0 + y as f64 * 10.0, 10.0, 10.0],
-                ctx.transform,
+                [x as f64 * 10.0, y as f64 * 10.0, 10.0, 10.0],
+                transform,
                 g,
             );
         }
     }
 
     for character in &game.characters {
-        let transform = ctx.transform.trans(
-            20.0 + character.position[0] as f64 * 10.0,
-            20.0 + character.position[1] as f64 * 10.0,
+        let transform = transform.trans(
+            character.position[0] as f64 * 10.0,
+            character.position[1] as f64 * 10.0,
         );
-        ellipse([0.0, 0.0, 1.0, 1.0], [0.0, 0.0, 10.0, 10.0], transform, g);
+        ellipse([0.0, 0.0, 1.0, 1.0], [-5.0, -5.0, 10.0, 10.0], transform, g);
         text(
             [0.0, 0.0, 0.0, 0.5],
             12,

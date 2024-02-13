@@ -49,7 +49,7 @@ impl Connection {
                 Err(cark_common::PostcardError::DeserializeUnexpectedEnd) => break,
                 Err(e) => panic!("{:?}", e),
             };
-            log::info!("Receive {:?}", &message);
+            log::debug!("Receive {:?}", &message);
 
             handler(message);
         }
