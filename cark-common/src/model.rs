@@ -12,13 +12,26 @@ pub struct Field {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct Character {
+    pub id: u64,
+    pub position: [f32; 2],
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Join {
     pub name: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Joined {
+    pub user_id: u64,
     pub field: Field,
+    pub characters: Vec<JoinedCharacter>,
+}
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct JoinedCharacter {
+    pub id: u64,
+    pub position: [f32; 2],
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -37,12 +50,29 @@ pub enum ClientMessage {
     Join(Join),
     PublicChatMessage(PublicChatMessage),
     UpdateField(UpdateField),
+    Position {
+        position: [f32; 2],
+        velocity: [f32; 2],
+    },
+    Leave,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub enum ServerMessage {
     Joined(Joined),
     UpdateField(UpdateField),
+    PlayerJoined {
+        user_id: u64,
+        position: [f32; 2],
+    },
+    PlayerLeft {
+        user_id: u64,
+    },
+    Position {
+        user_id: u64,
+        position: [f32; 2],
+        velocity: [f32; 2],
+    },
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -65,6 +95,12 @@ pub enum ServerUMessageBody {
         position: [f32; 2],
         velocity: [f32; 2],
     },
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub enum UdpMessage {
+    Init { id: u64 },
+    Message { message: ClientMessage },
 }
 
 impl Field {

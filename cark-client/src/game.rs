@@ -1,17 +1,15 @@
 pub struct Game {
     field: Field,
-    pub character: Vec<Character>,
+    pub characters: Vec<Character>,
+    pub player_id: u64,
 }
 
 impl Game {
     pub fn new() -> Self {
         Self {
             field: Field::new(20, 20),
-            character: vec![Character {
-                id: 0,
-                name: "player1".to_string(),
-                position: [1.0, 1.0],
-            }],
+            characters: vec![],
+            player_id: 0,
         }
     }
 
@@ -50,7 +48,11 @@ impl Field {
     }
 
     pub fn from_data(width: u32, height: u32, data: Vec<u8>) -> Self {
-        Self { width, height, data }
+        Self {
+            width,
+            height,
+            data,
+        }
     }
 
     pub fn width(&self) -> u32 {
@@ -77,6 +79,10 @@ pub struct Character {
 }
 
 impl Character {
+    pub fn new(id: u64, name: String, position: [f32; 2]) -> Self {
+        Self { id, name, position }
+    }
+
     pub fn id(&self) -> u64 {
         self.id
     }

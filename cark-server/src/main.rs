@@ -1,49 +1,33 @@
-use std::net::TcpListener;
-
-use cark_server::udp::Udp;
+use cark_server::{tcp::Tcp, udp::Udp};
 
 fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let addr = std::env::var("ADDR").unwrap_or("0.0.0.0:8080".to_string());
-    let listener = TcpListener::bind(addr)?;
-    listener.set_nonblocking(true)?;
 
+    let mut tcp = Tcp::new(&addr)?;
     let mut udp = Udp::new("0.0.0.0:8081")?;
 
     log::info!(
         "Listening on: {:?}, {:?}",
-        listener.local_addr()?,
+        tcp.local_addr()?,
         udp.local_addr()?
     );
 
-    let mut connections = vec![];
     let mut global = cark_server::Global::new();
     let mut incoming_events = vec![];
-    let mut outgoing_events = vec![];
 
     loop {
-        udp.process().or_else(map_err)?;
+        udp.process(|e| incoming_events.push(e)).or_else(map_err)?;
+        tcp.process(|e| incoming_events.push(e))?;
 
-        for stream in listener.incoming() {
-            let stream = match stream {
-                Ok(stream) => stream,
-                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
-                Err(e) => return Err(e),
-            };
-            connections.push(cark_server::connection::Connection::new(stream)?);
-        }
+        global.process(
+            &mut incoming_events,
+            |e| tcp.push_event(e),
+            |e| udp.push_event(e),
+        );
 
-        for connection in &mut connections {
-            connection
-                .process(|e| incoming_events.push(e), &outgoing_events)
-                .or_else(map_err)?;
-        }
-
-        connections.retain(|connection| !connection.is_closed());
-
-        outgoing_events.clear();
-        global.process(&mut incoming_events, |e| outgoing_events.push(e));
+        std::thread::sleep(std::time::Duration::from_millis(10));
     }
 }
 

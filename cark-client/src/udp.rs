@@ -1,14 +1,10 @@
 use std::net::{SocketAddr, UdpSocket};
 
-use cark_common::{
-    model::{ClientUMessage, ClientUMessageBody},
-    write_to_slice,
-};
+use cark_common::model::{ClientMessage, ServerMessage, UdpMessage};
 
 pub struct Udp {
     socket: UdpSocket,
-    outgoing_events: Vec<ClientUMessageBody>,
-    user_id: u64,
+    outgoing_events: Vec<ClientMessage>,
 }
 
 impl Udp {
@@ -23,7 +19,6 @@ impl Udp {
                     return Ok(Self {
                         socket,
                         outgoing_events: vec![],
-                        user_id: 0, // TODO
                     });
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {}
@@ -37,18 +32,22 @@ impl Udp {
         ))
     }
 
-    pub fn push_event(&mut self, event: ClientUMessageBody) {
+    pub fn push_event(&mut self, event: ClientMessage) {
         self.outgoing_events.push(event);
     }
 
-    pub fn process(&mut self) -> std::io::Result<()> {
+    pub fn process(&mut self, mut handler: impl FnMut(ServerMessage)) -> std::io::Result<()> {
         let mut buf = [0; 1024];
 
+        // Receive
         loop {
             match self.socket.recv(&mut buf) {
                 Ok(size) => {
-                    log::info!("Received {:?}", &buf[..size]);
-                    // TODO
+                    let message = &buf[..size];
+
+                    let message: ServerMessage = cark_common::read_from_slice(&message).unwrap();
+                    log::debug!("Received {:?}", message);
+                    handler(message);
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     break;
@@ -57,14 +56,22 @@ impl Udp {
             }
         }
 
+        // Send
         for event in self.outgoing_events.drain(..) {
-            let message = ClientUMessage {
-                user_id: self.user_id,
-                body: event,
-            };
-            let buf = write_to_slice(&message, &mut buf).unwrap();
+            let message = UdpMessage::Message { message: event };
+            let buf = cark_common::write_to_slice(&message, &mut buf).unwrap();
             self.socket.send(&buf)?;
         }
+
+        Ok(())
+    }
+
+    pub fn send_init(&mut self, id: u64) -> std::io::Result<()> {
+        let mut buf = [0; 1024];
+
+        let message = UdpMessage::Init { id };
+        let buf = cark_common::write_to_slice(&message, &mut buf).unwrap();
+        self.socket.send(&buf)?;
 
         Ok(())
     }

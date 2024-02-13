@@ -1,5 +1,10 @@
-use cark_client::{connection::Connection, game::Game, systems::system_player_move, udp::Udp};
-use cark_common::model::{ClientMessage, ClientUMessageBody};
+use cark_client::{
+    connection::Connection,
+    game::Game,
+    systems::{self, BoxedSystemFn},
+    udp::Udp,
+};
+use cark_common::model::{ClientMessage, ServerMessage};
 use piston_window::prelude::*;
 
 fn main() {
@@ -25,34 +30,50 @@ fn main() {
     let mut touch_visualizer = touch_visualizer::TouchVisualizer::new();
 
     let mut game = Game::new();
-    let mut systems: Vec<
-        Box<dyn FnMut(&mut Game, &piston_window::Event, &mut dyn FnMut(ClientMessage))>,
-    > = vec![Box::new(system_player_move())];
+    let mut systems: Vec<BoxedSystemFn> = vec![
+        Box::new(systems::system_player_move()),
+        Box::new(systems::system_player_action_push()),
+    ];
 
     let mut udp = Udp::new(&server_addr_udp).unwrap();
     let mut connection = Connection::new(&server_addr_tcp).unwrap();
 
     connection.push_event(ClientMessage::Join(cark_common::model::Join {
-        name: game.character[0].name().to_owned(),
+        name: "Player".to_owned(),
     }));
-
-    // test
-    udp.push_event(ClientUMessageBody::Position {
-        position: [1.0, 0.0],
-        velocity: [0.0, 0.0],
-    });
 
     while let Some(event) = window.next() {
         touch_visualizer.event(window.size(), &event);
 
         for system in &mut systems {
-            system(&mut game, &event, &mut |message| {
-                connection.push_event(message)
-            });
+            system(
+                &mut game,
+                &event,
+                &mut |message| connection.push_event(message),
+                &mut |message| udp.push_event(message),
+            );
         }
+        // TODO: systemの自殺
 
-        connection.process(&mut game).or_else(map_err).unwrap();
-        udp.process().or_else(map_err).unwrap();
+        let mut incoming_events = vec![];
+        let mut handler = |message| incoming_events.push(message);
+
+        connection.process(&mut handler).or_else(map_err).unwrap();
+        udp.process(&mut handler).or_else(map_err).unwrap();
+
+        for event in incoming_events {
+            // XXX
+            if let ServerMessage::Joined(joined) = &event {
+                udp.send_init(joined.user_id).or_else(map_err).unwrap();
+            }
+
+            handle_event(
+                event,
+                &mut game,
+                &mut |m| connection.push_event(m),
+                &mut |m| udp.push_event(m),
+            );
+        }
 
         window.draw_2d(&event, |ctx, g, device| {
             piston_window::clear([1.0; 4], g);
@@ -61,6 +82,59 @@ fn main() {
 
             glyphs.factory.encoder.flush(device);
         });
+    }
+}
+
+fn handle_event(
+    event: ServerMessage,
+    game: &mut Game,
+    mut push_tcp_event: impl FnMut(ClientMessage),
+    mut push_udp_event: impl FnMut(ClientMessage),
+) {
+    match event {
+        ServerMessage::Joined(joined) => {
+            game.set_field(cark_client::game::Field::from_data(
+                joined.field.width,
+                joined.field.height,
+                joined.field.data,
+            ));
+            game.characters = joined
+                .characters
+                .iter()
+                .map(|c| cark_client::game::Character::new(c.id, "Player".to_string(), c.position))
+                .collect();
+            game.player_id = joined.user_id;
+        }
+        ServerMessage::UpdateField(update_field) => {
+            let mut field = game.field().to_owned();
+            field.data_mut()[update_field.position[1] as usize * game.field().width() as usize
+                + update_field.position[0] as usize] = update_field.value;
+            game.set_field(field);
+            // TODO: how to update the field?
+        }
+        ServerMessage::Position {
+            user_id,
+            position,
+            velocity,
+        } => {
+            if let Some(character) = game.characters.iter_mut().find(|c| c.id() == user_id) {
+                character.position = position;
+                // character.velocity = velocity;
+            }
+        }
+        ServerMessage::PlayerJoined { user_id, position } => {
+            if game.characters.iter().any(|c| c.id() == user_id) {
+                return;
+            }
+            game.characters.push(cark_client::game::Character::new(
+                user_id,
+                "Player?".to_string(),
+                position,
+            ));
+        }
+        ServerMessage::PlayerLeft { user_id } => {
+            game.characters.retain(|c| c.id() != user_id);
+        }
     }
 }
 

@@ -39,15 +39,17 @@ where
         }
     }
 
-    ellipse(
-        [0.0, 0.0, 1.0, 1.0],
-        [
-            20.0 + game.character[0].position[0] as f64 * 10.0,
-            20.0 + game.character[0].position[1] as f64 * 10.0,
-            10.0,
-            10.0,
-        ],
-        ctx.transform,
-        g,
-    );
+    for character in &game.characters {
+        ellipse(
+            [0.0, 0.0, 1.0, 1.0],
+            [
+                20.0 + character.position[0] as f64 * 10.0,
+                20.0 + character.position[1] as f64 * 10.0,
+                10.0,
+                10.0,
+            ],
+            ctx.transform,
+            g,
+        );
+    }
 }
