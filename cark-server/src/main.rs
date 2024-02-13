@@ -1,5 +1,7 @@
 use std::net::TcpListener;
 
+use cark_server::udp::Udp;
+
 fn main() -> std::io::Result<()> {
     env_logger::init();
 
@@ -7,7 +9,13 @@ fn main() -> std::io::Result<()> {
     let listener = TcpListener::bind(addr)?;
     listener.set_nonblocking(true)?;
 
-    log::info!("Listening on: {:?}", listener.local_addr()?);
+    let mut udp = Udp::new("0.0.0.0:8081")?;
+
+    log::info!(
+        "Listening on: {:?}, {:?}",
+        listener.local_addr()?,
+        udp.local_addr()?
+    );
 
     let mut connections = vec![];
     let mut global = cark_server::Global::new();
@@ -15,6 +23,8 @@ fn main() -> std::io::Result<()> {
     let mut outgoing_events = vec![];
 
     loop {
+        udp.process().or_else(map_err)?;
+
         for stream in listener.incoming() {
             let stream = match stream {
                 Ok(stream) => stream,

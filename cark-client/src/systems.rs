@@ -1,7 +1,9 @@
+use cark_common::model;
+
 use crate::game::Game;
 
 pub fn system_player_move(
-) -> impl FnMut(&mut Game, &piston_window::Event, &mut dyn FnMut(cark_common::ClientMessage)) {
+) -> impl FnMut(&mut Game, &piston_window::Event, &mut dyn FnMut(model::ClientMessage)) {
     use piston_window::{Button, Key, PressEvent, ReleaseEvent, UpdateEvent};
 
     let mut dx = 0.0;
@@ -9,7 +11,7 @@ pub fn system_player_move(
 
     return move |game: &mut Game,
                  event: &piston_window::Event,
-                 push_outgoing_event: &mut dyn FnMut(cark_common::ClientMessage)| {
+                 push_outgoing_event: &mut dyn FnMut(model::ClientMessage)| {
         if let Some(Button::Keyboard(key)) = event.press_args() {
             match key {
                 Key::W => {
@@ -29,15 +31,13 @@ pub fn system_player_move(
                         game.character[0].position[0] as u32,
                         game.character[0].position[1] as u32,
                     ];
-                    push_outgoing_event(cark_common::ClientMessage::UpdateField(
-                        cark_common::UpdateField {
-                            position,
-                            value: game.field().data()[position[1] as usize
-                                * game.field().width() as usize
-                                + position[0] as usize]
-                                ^ 1,
-                        },
-                    ));
+                    push_outgoing_event(model::ClientMessage::UpdateField(model::UpdateField {
+                        position,
+                        value: game.field().data()[position[1] as usize
+                            * game.field().width() as usize
+                            + position[0] as usize]
+                            ^ 1,
+                    }));
                 }
                 _ => {}
             }

@@ -1,51 +1,7 @@
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub struct Message {
-    pub id: u64,
-    pub text: String,
-}
+pub mod model;
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub struct Field {
-    pub width: u32,
-    pub height: u32,
-    pub data: Vec<u8>,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub struct Join {
-    pub name: String,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub struct Joined {
-    pub field: Field,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub struct UpdateField {
-    pub position: [u32; 2],
-    pub value: u8,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub struct PublicChatMessage {
-    pub text: String,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub enum ClientMessage {
-    Join(Join),
-    PublicChatMessage(PublicChatMessage),
-    UpdateField(UpdateField),
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub enum ServerMessage {
-    Joined(Joined),
-    UpdateField(UpdateField),
-}
-
-pub use postcard::to_io;
+pub use postcard::to_io as write;
+pub use postcard::to_slice as write_to_slice;
 
 pub fn read<T: serde::de::DeserializeOwned>(buf: &mut Vec<u8>) -> Result<T, postcard::Error> {
     let (x, rest) = postcard::take_from_bytes(buf)?;
@@ -54,38 +10,11 @@ pub fn read<T: serde::de::DeserializeOwned>(buf: &mut Vec<u8>) -> Result<T, post
     Ok(x)
 }
 
-pub type PostcardError = postcard::Error;
-
-impl Field {
-    pub fn new(width: u32, height: u32) -> Self {
-        let mut data = vec![0; (width * height) as usize];
-        for i in 0..width {
-            data[i as usize] = 1;
-            data[(height * width - i - 1) as usize] = 1;
-        }
-        for i in 0..height {
-            data[(i * width) as usize] = 1;
-            data[((i + 1) * width - 1) as usize] = 1;
-        }
-        Self {
-            width,
-            height,
-            data,
-        }
-    }
-
-    pub fn width(&self) -> u32 {
-        self.width
-    }
-
-    pub fn height(&self) -> u32 {
-        self.height
-    }
-
-    pub fn data(&self) -> &[u8] {
-        &self.data
-    }
+pub fn read_from_slice<T: serde::de::DeserializeOwned>(buf: &[u8]) -> Result<T, postcard::Error> {
+    postcard::from_bytes(buf)
 }
+
+pub type PostcardError = postcard::Error;
 
 #[test]
 fn test() {

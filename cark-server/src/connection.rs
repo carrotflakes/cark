@@ -26,8 +26,8 @@ impl Connection {
         self.stream.as_raw_fd() as u64
     }
 
-    fn write(&mut self, message: &cark_common::ServerMessage) -> std::io::Result<()> {
-        match cark_common::to_io(message, &mut self.stream) {
+    fn write(&mut self, message: &cark_common::model::ServerMessage) -> std::io::Result<()> {
+        match cark_common::write(message, &mut self.stream) {
             Ok(_) => {}
             Err(cark_common::PostcardError::SerializeBufferFull) => {
                 log::info!("Client disconnected: {:?}", self.stream);
@@ -67,8 +67,9 @@ impl Connection {
         };
 
         while !self.buf.is_empty() {
-            // println!("{:?}", &self.buf);
-            let message: cark_common::ClientMessage = match cark_common::read(&mut self.buf) {
+            // println!("{:?}", &String::from_utf8(self.buf.to_owned()));
+            let message: cark_common::model::ClientMessage = match cark_common::read(&mut self.buf)
+            {
                 Ok(r) => r,
                 Err(cark_common::PostcardError::DeserializeUnexpectedEnd) => break,
                 Err(e) => panic!("{:?}", e),

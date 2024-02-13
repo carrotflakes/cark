@@ -1,17 +1,18 @@
 pub mod connection;
+pub mod udp;
 
-use cark_common::{ClientMessage, ServerMessage};
+use cark_common::model::{ClientMessage, Field, ServerMessage};
 
 pub struct Global {
     pub messages: Vec<String>,
-    field: cark_common::Field,
+    field: Field,
 }
 
 impl Global {
     pub fn new() -> Self {
         Self {
             messages: vec![],
-            field: cark_common::Field::new(20, 20),
+            field: Field::new(20, 20),
         }
     }
 
@@ -25,7 +26,7 @@ impl Global {
             match &event.message {
                 ClientMessage::Join(_) => outgoing_events(OutgoingEvent {
                     connection_id: Some(event.connection_id),
-                    message: ServerMessage::Joined(cark_common::Joined {
+                    message: ServerMessage::Joined(cark_common::model::Joined {
                         field: self.field.clone(),
                     }),
                 }),
