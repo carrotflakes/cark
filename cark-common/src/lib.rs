@@ -1,4 +1,5 @@
 pub mod model;
+pub mod udp_stat;
 
 pub use postcard::to_io as write;
 pub use postcard::to_slice as write_to_slice;

@@ -22,8 +22,8 @@ pub fn system_player_move() -> impl FnMut(
 
     let mut ddx = 0.0;
     let mut ddy = 0.0;
-    let dv = 0.05;
-    let fract = 0.9;
+    let dv = 60.0;
+    let fract = 0.04f32;
 
     return move |game, event, push_outgoing_event, push_outgoing_uevent| {
         if let Some(Button::Keyboard(key)) = event.press_args() {
@@ -83,18 +83,21 @@ pub fn system_player_move() -> impl FnMut(
             }
         }
 
-        if let Some(_args) = event.update_args() {
+        if let Some(args) = event.update_args() {
+            let dt = args.dt as f32;
+
             if let Some(i) = game
                 .characters
                 .iter()
                 .position(|c| c.id() == game.player_id)
             {
+                let fract = fract.powf(dt);
                 game.characters[i].velocity = [
-                    game.characters[i].velocity[0] * fract + ddx,
-                    game.characters[i].velocity[1] * fract + ddy,
+                    game.characters[i].velocity[0] * fract + ddx * dt,
+                    game.characters[i].velocity[1] * fract + ddy * dt,
                 ];
-                game.characters[i].position[0] += game.characters[i].velocity[0];
-                game.characters[i].position[1] += game.characters[i].velocity[1];
+                game.characters[i].position[0] += game.characters[i].velocity[0] * dt;
+                game.characters[i].position[1] += game.characters[i].velocity[1] * dt;
                 game.characters[i].position[0] =
                     game.characters[i].position[0].clamp(0.0, game.field().width() as f32);
                 game.characters[i].position[1] =

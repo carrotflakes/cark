@@ -87,6 +87,7 @@ impl Connection {
             self.buf.clear();
             push_incoming_event(IncomingEvent {
                 connection_id: self.id(),
+                sequence: 0,
                 message,
             });
         }

@@ -1,13 +1,15 @@
-use std::{collections::HashMap, net::UdpSocket};
+use std::net::{SocketAddr, UdpSocket};
 
-use cark_common::model::UdpMessage;
+use cark_common::{
+    model::{ClientUdpMessage, ServerUdpMessage},
+    udp_stat::{Sequence, SequenceGen, UdpStat},
+};
 
 use crate::{IncomingEvent, OutgoingEvent};
 
 pub struct Udp {
     socket: UdpSocket,
-    addr_id_map: HashMap<std::net::SocketAddr, u64>,
-    id_addr_map: HashMap<u64, std::net::SocketAddr>,
+    connections: Vec<Connection>, // TODO: Remove
     outgoing_events: Vec<OutgoingEvent>,
 }
 
@@ -17,13 +19,12 @@ impl Udp {
         socket.set_nonblocking(true)?;
         Ok(Self {
             socket,
-            addr_id_map: HashMap::new(),
-            id_addr_map: HashMap::new(),
+            connections: vec![],
             outgoing_events: vec![],
         })
     }
 
-    pub fn local_addr(&self) -> std::io::Result<std::net::SocketAddr> {
+    pub fn local_addr(&self) -> std::io::Result<SocketAddr> {
         self.socket.local_addr()
     }
 
@@ -41,20 +42,36 @@ impl Udp {
                     let message = &buf[..size];
                     log::debug!("Received {:?} from {}", message, addr);
 
-                    let message: UdpMessage = cark_common::read_from_slice(message).unwrap();
+                    let message: ClientUdpMessage = cark_common::read_from_slice(message).unwrap();
                     log::debug!("Received {:?}", message);
 
                     match message {
-                        UdpMessage::Init { id } => {
+                        ClientUdpMessage::Init { id } => {
                             log::info!("Client connected, addr: {}, id: {}", addr, id);
 
-                            self.addr_id_map.insert(addr, id);
-                            self.id_addr_map.insert(id, addr);
+                            self.connections.retain(|c| {
+                                let detected = c.addr == addr;
+                                if detected {
+                                    // TODO
+                                    log::info!("Client reconnected, addr: {}, id: {}", addr, id);
+                                }
+                                !detected
+                            });
+
+                            self.connections.push(Connection::new(id, addr));
                         }
-                        UdpMessage::Message { message } => {
-                            let id = *self.addr_id_map.get(&addr).expect("Unknown address");
+                        ClientUdpMessage::Message { sequence, message } => {
+                            let connection = self
+                                .connections
+                                .iter_mut()
+                                .find(|c| c.addr == addr)
+                                .expect("Unknown address");
+
+                            connection.update(sequence);
+
                             handler(IncomingEvent {
-                                connection_id: id,
+                                connection_id: connection.id,
+                                sequence,
                                 message,
                             });
                         }
@@ -69,19 +86,66 @@ impl Udp {
 
         // Send
         for event in self.outgoing_events.drain(..) {
-            let buf = cark_common::write_to_slice(&event.message, &mut buf).unwrap();
-
             if let Some(id) = event.connection_id {
-                let addr = self.id_addr_map.get(&id).expect("Unknown id");
-                self.socket.send_to(&buf, addr)?;
+                let connection = self
+                    .connections
+                    .iter_mut()
+                    .find(|c| c.id == id)
+                    .expect("Unknown id");
+
+                let message = ServerUdpMessage::Message {
+                    sequence: connection.sequence.next(),
+                    message: event.message,
+                };
+                let buf = cark_common::write_to_slice(&message, &mut buf).unwrap();
+
+                self.socket.send_to(&buf, connection.addr)?;
             } else {
                 // Broadcast
-                for addr in self.addr_id_map.keys() {
-                    self.socket.send_to(&buf, addr)?;
+                for connection in &mut self.connections {
+                    let message = ServerUdpMessage::Message {
+                        sequence: connection.sequence.next(),
+                        message: event.message.clone(),
+                    };
+                    let buf = cark_common::write_to_slice(&message, &mut buf).unwrap();
+                    self.socket.send_to(&buf, connection.addr)?;
                 }
             }
         }
 
         Ok(())
+    }
+
+    pub fn log_stat(&self) {
+        for connection in &self.connections {
+            log::info!(
+                "Connection: id={}, addr={}, loss={:.2}%", //, rtt={:?}ms
+                connection.id,
+                connection.addr,
+                connection.stat.loss_rate() * 100.0,
+            );
+        }
+    }
+}
+
+pub struct Connection {
+    id: u64,
+    addr: SocketAddr,
+    stat: UdpStat,
+    sequence: SequenceGen,
+}
+
+impl Connection {
+    pub fn new(id: u64, addr: SocketAddr) -> Self {
+        Self {
+            id,
+            addr,
+            stat: UdpStat::new(),
+            sequence: SequenceGen::default(),
+        }
+    }
+
+    pub fn update(&mut self, sequence: Sequence) {
+        self.stat.update(sequence);
     }
 }

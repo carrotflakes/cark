@@ -2,7 +2,10 @@ mod connection;
 pub mod tcp;
 pub mod udp;
 
-use cark_common::model::{Character, ClientMessage, Field, JoinedCharacter, ServerMessage};
+use cark_common::{
+    model::{Character, ClientMessage, Field, JoinedCharacter, ServerMessage},
+    udp_stat::Sequence,
+};
 
 pub struct Global {
     pub messages: Vec<String>,
@@ -101,6 +104,8 @@ impl Global {
 #[derive(Debug)]
 pub struct IncomingEvent {
     connection_id: u64,
+    // This will be 0 for TCP connections.
+    sequence: Sequence,
     message: ClientMessage,
 }
 

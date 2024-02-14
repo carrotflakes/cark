@@ -1,3 +1,5 @@
+use crate::udp_stat::Sequence;
+
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Message {
     pub id: u64,
@@ -79,31 +81,23 @@ pub enum ServerMessage {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub enum ClientUMessageBody {
-    Position {
-        position: [f32; 2],
-        velocity: [f32; 2],
+pub enum ClientUdpMessage {
+    Init {
+        id: u64,
+    },
+    Message {
+        sequence: Sequence,
+        message: ClientMessage,
     },
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub struct ClientUMessage {
-    pub user_id: u64, // TODO: remove
-    pub body: ClientUMessageBody,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub enum ServerUMessageBody {
-    Position {
-        position: [f32; 2],
-        velocity: [f32; 2],
+pub enum ServerUdpMessage {
+    Init,
+    Message {
+        sequence: Sequence,
+        message: ServerMessage,
     },
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub enum UdpMessage {
-    Init { id: u64 },
-    Message { message: ClientMessage },
 }
 
 impl Field {

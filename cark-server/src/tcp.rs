@@ -50,6 +50,7 @@ impl Tcp {
             if connection.is_closed() {
                 push_incoming_event(IncomingEvent {
                     connection_id: connection.id(),
+                    sequence: 0,
                     message: cark_common::model::ClientMessage::Leave,
                 });
             }
@@ -61,6 +62,10 @@ impl Tcp {
             .retain(|connection| !connection.is_closed());
 
         Ok(())
+    }
+
+    pub fn connections(&self) -> &[Connection] {
+        &self.connections
     }
 }
 

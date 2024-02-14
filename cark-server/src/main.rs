@@ -16,6 +16,7 @@ fn main() -> std::io::Result<()> {
 
     let mut global = cark_server::Global::new();
     let mut incoming_events = vec![];
+    let mut count = 0;
 
     loop {
         udp.process(|e| incoming_events.push(e)).or_else(map_err)?;
@@ -26,6 +27,12 @@ fn main() -> std::io::Result<()> {
             |e| tcp.push_event(e),
             |e| udp.push_event(e),
         );
+
+        count = (count + 1) % 1000;
+        if count == 0 {
+            log::info!("Connections: {}", tcp.connections().len());
+            udp.log_stat();
+        }
 
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
