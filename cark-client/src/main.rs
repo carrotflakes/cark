@@ -1,7 +1,7 @@
 use cark_client::{
-    connection::Connection,
     game::Game,
     systems::{self, BoxedSystemFn},
+    tcp_connection::TcpConnection,
     udp::Udp,
 };
 use cark_common::model::{ClientMessage, ServerMessage};
@@ -44,7 +44,7 @@ fn main() {
     ];
 
     let mut udp = Udp::new(&server_addr_udp).unwrap();
-    let mut connection = Connection::new(&server_addr_tcp).unwrap();
+    let mut connection = TcpConnection::new(&server_addr_tcp).unwrap();
 
     let name = (std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

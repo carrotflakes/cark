@@ -5,13 +5,13 @@ use std::{
 
 use cark_common::model::{ClientMessage, ServerMessage};
 
-pub struct Connection {
+pub struct TcpConnection {
     pub stream: TcpStream,
     pub buf: Vec<u8>,
     outgoing_events: Vec<ClientMessage>,
 }
 
-impl Connection {
+impl TcpConnection {
     pub fn new(addr: &str) -> Result<Self, std::io::Error> {
         let stream = TcpStream::connect(addr)?;
         stream.set_nonblocking(true)?;

@@ -1,6 +1,6 @@
-pub mod connection;
 pub mod game;
 pub mod systems;
+pub mod tcp_connection;
 pub mod udp;
 
 pub fn draw<C, G>(glyphs: &mut C, ctx: piston_window::Context, g: &mut G, game: &mut game::Game)

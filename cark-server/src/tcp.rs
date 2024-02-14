@@ -38,6 +38,19 @@ impl Tcp {
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
                 Err(e) => return Err(e),
             };
+
+            if self
+                .connections
+                .iter()
+                .find(|c| c.stream.peer_addr().unwrap() == stream.peer_addr().unwrap())
+                .is_some()
+            {
+                log::warn!(
+                    "Same peer address already connected: addr={}",
+                    stream.peer_addr().unwrap()
+                );
+            }
+
             self.connections.push(Connection::new(stream)?);
         }
 

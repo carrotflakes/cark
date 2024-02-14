@@ -4,12 +4,13 @@ fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let addr = std::env::var("ADDR").unwrap_or("0.0.0.0:8080".to_string());
+    let udp_addr = std::env::var("UDP_ADDR").unwrap_or("0.0.0.0:8081".to_string());
 
     let mut tcp = Tcp::new(&addr)?;
-    let mut udp = Udp::new("0.0.0.0:8081")?;
+    let mut udp = Udp::new(&udp_addr)?;
 
     log::info!(
-        "Listening on: {:?}, {:?}",
+        "Listening on: tcp={:?}, udp={:?}",
         tcp.local_addr()?,
         udp.local_addr()?
     );
