@@ -8,8 +8,7 @@ use cark_common::model::{ClientMessage, ServerMessage};
 use piston_window::prelude::*;
 
 fn main() {
-    std::env::set_var("RUST_LOG", "info");
-    env_logger::init();
+    init_logger();
 
     let config = cark_client::config::load_config();
     log::info!("{:?}", &config);
@@ -151,10 +150,37 @@ fn map_err(e: std::io::Error) -> Result<(), std::io::Error> {
     }
 }
 
+fn init_logger() {
+    use simplelog::*;
+
+    CombinedLogger::init(vec![
+        TermLogger::new(
+            LevelFilter::Info,
+            Config::default(),
+            TerminalMode::Mixed,
+            ColorChoice::Auto,
+        ),
+        WriteLogger::new(
+            LevelFilter::Info,
+            Config::default(),
+            std::fs::File::create("cark.log").unwrap(),
+        ),
+    ])
+    .unwrap();
+
+    log_panics::init();
+}
+
 #[test]
 fn test() {
-    std::env::set_var("RUST_LOG", "info");
-    env_logger::init();
+    simplelog::TermLogger::init(
+        simplelog::LevelFilter::Info,
+        simplelog::Config::default(),
+        simplelog::TerminalMode::Mixed,
+        simplelog::ColorChoice::Auto,
+    )
+    .unwrap();
+
     let server_addr_udp = "127.0.0.1:8081";
 
     Udp::new(server_addr_udp).unwrap();
