@@ -11,18 +11,8 @@ fn main() {
     std::env::set_var("RUST_LOG", "info");
     env_logger::init();
 
-    // ip a show dev eth0
-    let mut ip = "127.0.0.1".to_owned();
-    if let Ok(f) = std::fs::File::open("cark.txt") {
-        let mut reader = std::io::BufReader::new(f);
-        let mut s = String::new();
-        std::io::Read::read_to_string(&mut reader, &mut s).unwrap();
-        ip = s.trim().to_owned();
-    }
-    log::info!("CARK_SERVER_IP: {:?}", ip);
-
-    let server_addr_tcp = format!("{}:8080", ip);
-    let server_addr_udp = format!("{}:8081", ip);
+    let config = cark_client::config::load_config();
+    log::info!("{:?}", &config);
 
     let mut window: PistonWindow = WindowSettings::new("CARK", [800 / 2, 600 / 2])
         .exit_on_esc(true)
@@ -43,8 +33,8 @@ fn main() {
         Box::new(systems::system_player_action_push()),
     ];
 
-    let mut udp = Udp::new(&server_addr_udp).unwrap();
-    let mut connection = TcpConnection::new(&server_addr_tcp).unwrap();
+    let mut udp = Udp::new(&config.server_udp_addr).unwrap();
+    let mut connection = TcpConnection::new(&config.server_tcp_addr).unwrap();
 
     let name = (std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

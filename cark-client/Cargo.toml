@@ -10,5 +10,7 @@ piston_window = "0"
 piston2d-touch_visualizer = "0"
 find_folder = "0"
 
+toml = "0.8"
+
 log = "0.4"
 env_logger = "0.11"
