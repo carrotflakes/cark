@@ -33,6 +33,7 @@ fn main() {
     let mut systems: Vec<BoxedSystemFn> = vec![
         Box::new(systems::system_player_move()),
         Box::new(systems::system_player_action_push()),
+        Box::new(systems::system_compute_ups()),
     ];
 
     let mut udp = Udp::new(&config.server_udp_addr).unwrap();

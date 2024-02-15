@@ -132,3 +132,21 @@ pub fn system_player_action_push() -> impl FnMut(
         }
     };
 }
+
+pub fn system_compute_ups() -> impl FnMut(
+    &mut Game,
+    &piston_window::Event,
+    &mut dyn FnMut(model::ClientMessage),
+    &mut dyn FnMut(model::ClientMessage),
+) {
+    let mut last = std::time::Instant::now();
+
+    return move |game, event, push_outgoing_event, push_outgoing_uevent| {
+        if let Some(_) = event.update_args() {
+            let now = std::time::Instant::now();
+            let dt = now.duration_since(last).as_secs_f32();
+            last = now;
+            game.ups = game.ups * 0.9 + 1.0 / dt * 0.1;
+        }
+    };
+}

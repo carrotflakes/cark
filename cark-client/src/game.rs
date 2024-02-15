@@ -2,6 +2,7 @@ pub struct Game {
     field: Field,
     pub characters: Vec<Character>,
     pub player_id: u64,
+    pub ups: f32,
 }
 
 impl Game {
@@ -10,6 +11,7 @@ impl Game {
             field: Field::new(20, 20),
             characters: vec![],
             player_id: 0,
+            ups: 0.0,
         }
     }
 

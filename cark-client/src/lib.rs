@@ -11,6 +11,16 @@ where
 {
     use piston_window::{ellipse, rectangle, text, Transformed};
 
+    text(
+        [0.0, 0.0, 0.0, 1.0],
+        12,
+        &format!("ups: {:?}", game.ups),
+        glyphs,
+        ctx.transform.trans(1.0, 13.0),
+        g,
+    )
+    .unwrap();
+
     let width = game.field().width();
     let height = game.field().height();
     let data = game.field().data();
