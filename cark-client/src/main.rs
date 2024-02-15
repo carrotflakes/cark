@@ -16,8 +16,10 @@ fn main() {
 
     let mut window: PistonWindow = WindowSettings::new("CARK", [800 / 2, 600 / 2])
         .exit_on_esc(true)
+        .vsync(true)
         .build()
         .unwrap();
+    window.events.set_ups(60);
 
     let assets = find_folder::Search::ParentsThenKids(4, 2)
         .for_folder("cark-client")
