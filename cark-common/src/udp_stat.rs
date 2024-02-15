@@ -46,12 +46,10 @@ impl UdpStat {
             self.sent += diff as u64;
         }
 
-        debug_assert!(
-            self.sent >= self.received,
-            "sent < received: sent={}, received={}",
-            self.sent,
-            self.received
-        );
+        // When packets are duplicated, received may exceed sent, so in that case, received is adjusted to sent.
+        if self.sent < self.received {
+            self.received = self.sent;
+        }
 
         self.last_sequence = sequence;
     }
