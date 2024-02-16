@@ -230,14 +230,8 @@ name = "cark-client"
 version = "0.1.0"
 dependencies = [
  "cark-common",
- "find_folder",
  "log",
- "log-panics",
- "piston2d-touch_visualizer",
- "piston_window",
  "serde",
- "simplelog",
- "toml",
 ]
 
 [[package]]
@@ -256,6 +250,22 @@ dependencies = [
  "env_logger",
  "log",
  "serde",
+]
+
+[[package]]
+name = "cark-window"
+version = "0.1.0"
+dependencies = [
+ "cark-client",
+ "cark-common",
+ "find_folder",
+ "log",
+ "log-panics",
+ "piston2d-touch_visualizer",
+ "piston_window",
+ "serde",
+ "simplelog",
+ "toml",
 ]
 
 [[package]]
