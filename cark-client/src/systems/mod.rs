@@ -1,28 +1,16 @@
 use cark_common::model;
 
-use crate::{game::Game, Input};
+use crate::{communication::Communication, game::Game, Input};
 
-pub type BoxedSystemFn = Box<
-    dyn FnMut(
-        &mut Game,
-        &Input,
-        &mut dyn FnMut(model::ClientMessage),
-        &mut dyn FnMut(model::ClientMessage),
-    ),
->;
+pub type BoxedSystemFn = Box<dyn FnMut(&mut Game, &Input, &mut Communication)>;
 
-pub fn system_player_move() -> impl FnMut(
-    &mut Game,
-    &Input,
-    &mut dyn FnMut(model::ClientMessage),
-    &mut dyn FnMut(model::ClientMessage),
-) {
+pub fn system_player_move() -> impl FnMut(&mut Game, &Input, &mut Communication) {
     let mut ddx = 0.0;
     let mut ddy = 0.0;
     let dv = 60.0;
     let fract = 0.04f32;
 
-    return move |game, input, push_outgoing_event, push_outgoing_uevent| {
+    return move |game, input, comm| {
         if input.key_down[0] {
             ddy -= dv;
         }
@@ -45,7 +33,7 @@ pub fn system_player_move() -> impl FnMut(
                     game.characters[i].position[0] as u32,
                     game.characters[i].position[1] as u32,
                 ];
-                push_outgoing_event(model::ClientMessage::UpdateField(model::UpdateField {
+                comm.push_tcp_event(model::ClientMessage::UpdateField(model::UpdateField {
                     position,
                     value: game.field().data()[position[1] as usize
                         * game.field().width() as usize
@@ -90,15 +78,10 @@ pub fn system_player_move() -> impl FnMut(
     };
 }
 
-pub fn system_player_action_push() -> impl FnMut(
-    &mut Game,
-    &Input,
-    &mut dyn FnMut(model::ClientMessage),
-    &mut dyn FnMut(model::ClientMessage),
-) {
+pub fn system_player_action_push() -> impl FnMut(&mut Game, &Input, &mut Communication) {
     let mut i = 0;
 
-    return move |game, input, push_outgoing_event, push_outgoing_uevent| {
+    return move |game, input, comm| {
         // Throttle the updates
         i += 1;
         if i % 3 == 0 {
@@ -106,7 +89,7 @@ pub fn system_player_action_push() -> impl FnMut(
         }
 
         if let Some(character) = game.characters.iter().find(|c| c.id() == game.player_id) {
-            push_outgoing_uevent(model::ClientMessage::Position {
+            comm.push_udp_event(model::ClientMessage::Position {
                 position: character.position,
                 velocity: character.velocity,
             });
@@ -114,15 +97,10 @@ pub fn system_player_action_push() -> impl FnMut(
     };
 }
 
-pub fn system_compute_ups() -> impl FnMut(
-    &mut Game,
-    &Input,
-    &mut dyn FnMut(model::ClientMessage),
-    &mut dyn FnMut(model::ClientMessage),
-) {
+pub fn system_compute_ups() -> impl FnMut(&mut Game, &Input, &mut Communication) {
     let mut last = std::time::Instant::now();
 
-    return move |game, input, push_outgoing_event, push_outgoing_uevent| {
+    return move |game, input, comm| {
         let now = std::time::Instant::now();
         let dt = now.duration_since(last).as_secs_f32();
         last = now;

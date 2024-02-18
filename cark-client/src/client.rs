@@ -1,4 +1,4 @@
-use cark_common::model::{ClientMessage, ServerMessage};
+use cark_common::model::ServerMessage;
 
 use crate::{
     communication::Communication,
@@ -36,12 +36,7 @@ impl Client {
 
     pub fn process(&mut self, input: &Input) {
         for system in &mut self.systems {
-            system(
-                &mut self.game,
-                &input,
-                &mut |m| self.communication.tcp.push_event(m),
-                &mut |m| self.communication.udp.push_event(m),
-            );
+            system(&mut self.game, &input, &mut self.communication);
         }
 
         let incoming_events = self.communication.process().unwrap();
@@ -56,22 +51,12 @@ impl Client {
                     .unwrap();
             }
 
-            handle_event(
-                event,
-                &mut self.game,
-                &mut |m| self.communication.tcp.push_event(m),
-                &mut |m| self.communication.udp.push_event(m),
-            );
+            handle_event(event, &mut self.game, &mut self.communication);
         }
     }
 }
 
-fn handle_event(
-    event: ServerMessage,
-    game: &mut Game,
-    mut push_tcp_event: impl FnMut(ClientMessage),
-    mut push_udp_event: impl FnMut(ClientMessage),
-) {
+fn handle_event(event: ServerMessage, game: &mut Game, mut comm: &mut Communication) {
     match event {
         ServerMessage::Joined(joined) => {
             game.set_field(Field::from_data(
