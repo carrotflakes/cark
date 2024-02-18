@@ -74,6 +74,27 @@ pub fn system_player_move() -> impl FnMut(&mut Game, &Input, &mut Communication)
                 game.characters[i].position[0].clamp(0.0, game.field().width() as f32);
             game.characters[i].position[1] =
                 game.characters[i].position[1].clamp(0.0, game.field().height() as f32);
+
+            for j in 0..game.characters.len() {
+                if i == j {
+                    continue;
+                }
+
+                let pos1 = parry2d::na::Vector2::from(game.characters[i].position);
+                let pos2 = parry2d::na::Vector2::from(game.characters[j].position);
+                if let Ok(dist) = parry2d::query::details::distance(
+                    &parry2d::na::Isometry2::new(pos1, 0.0),
+                    &parry2d::shape::Ball::new(0.5),
+                    &parry2d::na::Isometry2::new(pos2, 0.0),
+                    &parry2d::shape::Ball::new(0.5),
+                ) {
+                    if dist == 0.0 {
+                        let d = (pos1 - pos2).normalize() * 0.25;
+                        game.characters[i].velocity[0] += d.x;
+                        game.characters[i].velocity[1] += d.y;
+                    }
+                }
+            }
         }
     };
 }

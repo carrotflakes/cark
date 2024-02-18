@@ -6,5 +6,6 @@ edition = "2021"
 [dependencies]
 cark-common = { path = "../cark-common" }
 serde = { version = "1.0", features = ["derive"] }
+parry2d = "0"
 
 log = "0.4"
