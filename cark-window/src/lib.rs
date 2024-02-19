@@ -29,10 +29,11 @@ pub fn draw<C, G>(
         for y in 0..height {
             let cell = data[(y * width + x) as usize];
             rectangle(
-                if cell == 0 {
-                    [1.0, 0.0, 0.0, 1.0]
-                } else {
-                    [1.0, 1.0, 0.0, 1.0]
+                match cell {
+                    0 => [1.0, 0.0, 0.0, 1.0],
+                    1 => [1.0, 0.5, 0.0, 1.0],
+                    2 => [0.0, 0.5, 0.0, 1.0],
+                    _ => [0.9, 0.9, 0.9, 1.0],
                 },
                 [x as f64 * 10.0, y as f64 * 10.0, 10.0, 10.0],
                 transform,

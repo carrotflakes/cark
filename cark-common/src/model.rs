@@ -103,13 +103,14 @@ pub enum ServerUdpMessage {
 impl Field {
     pub fn new(width: u32, height: u32) -> Self {
         let mut data = vec![0; (width * height) as usize];
+        let wall = 2;
         for i in 0..width {
-            data[i as usize] = 1;
-            data[(height * width - i - 1) as usize] = 1;
+            data[i as usize] = wall;
+            data[(height * width - i - 1) as usize] = wall;
         }
         for i in 0..height {
-            data[(i * width) as usize] = 1;
-            data[((i + 1) * width - 1) as usize] = 1;
+            data[(i * width) as usize] = wall;
+            data[((i + 1) * width - 1) as usize] = wall;
         }
         Self {
             width,

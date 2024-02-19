@@ -34,7 +34,7 @@ impl Global {
             match &event.message {
                 ClientMessage::Join(join) => {
                     let user_id = event.connection_id;
-                    let position = [1.0, 1.0];
+                    let position = [2.0, 2.0];
                     self.characters.push(Character {
                         id: user_id,
                         name: join.name.clone(),

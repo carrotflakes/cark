@@ -68,6 +68,62 @@ pub fn system_player_move() -> impl FnMut(&mut Game, &Input, &mut Communication)
                 game.characters[i].velocity[0] * fract + ddx * dt,
                 game.characters[i].velocity[1] * fract + ddy * dt,
             ];
+
+            let pos = parry2d::na::Vector2::from(game.characters[i].position);
+            let character_shape = parry2d::shape::Ball::new(0.5);
+            {
+                let block = parry2d::shape::SharedShape::new(parry2d::shape::Cuboid::new(
+                    parry2d::na::Vector2::new(0.5, 0.5),
+                ));
+                let field = game.field();
+                let col = parry2d::shape::Compound::new(
+                    field
+                        .data()
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(i, &v)| {
+                            if v == 2 {
+                                let x = i as u32 % field.width();
+                                let y = i as u32 / field.width();
+                                Some((
+                                    parry2d::na::Isometry2::new(
+                                        parry2d::na::Vector2::new(x as f32 + 0.5, y as f32 + 0.5),
+                                        0.0,
+                                    ),
+                                    block.clone(),
+                                ))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect(),
+                );
+                if let Some(toi) = parry2d::query::time_of_impact(
+                    &parry2d::na::Isometry2::new(pos, 0.0),
+                    &parry2d::na::Vector2::from(game.characters[i].velocity),
+                    &character_shape,
+                    &Default::default(),
+                    &Default::default(),
+                    &col,
+                    dt,
+                    true,
+                )
+                .unwrap()
+                {
+                    // log::info!("toi: {:?}", toi);
+                    // toi.status == parry2d::query::TOIStatus::Converged;
+                    game.characters[i].position[0] +=
+                        game.characters[i].velocity[0] * toi.toi * 0.99;
+                    game.characters[i].position[1] +=
+                        game.characters[i].velocity[1] * toi.toi * 0.99;
+                    let refl = toi.normal2.scale(
+                        1.5 * parry2d::na::Vector2::from(game.characters[i].velocity).norm(),
+                    );
+                    game.characters[i].velocity[0] += refl.x;
+                    game.characters[i].velocity[1] += refl.y;
+                };
+            }
+
             game.characters[i].position[0] += game.characters[i].velocity[0] * dt;
             game.characters[i].position[1] += game.characters[i].velocity[1] * dt;
             game.characters[i].position[0] =
@@ -80,16 +136,15 @@ pub fn system_player_move() -> impl FnMut(&mut Game, &Input, &mut Communication)
                     continue;
                 }
 
-                let pos1 = parry2d::na::Vector2::from(game.characters[i].position);
                 let pos2 = parry2d::na::Vector2::from(game.characters[j].position);
                 if let Ok(dist) = parry2d::query::details::distance(
-                    &parry2d::na::Isometry2::new(pos1, 0.0),
-                    &parry2d::shape::Ball::new(0.5),
+                    &parry2d::na::Isometry2::new(pos, 0.0),
+                    &character_shape,
                     &parry2d::na::Isometry2::new(pos2, 0.0),
-                    &parry2d::shape::Ball::new(0.5),
+                    &character_shape,
                 ) {
-                    if dist == 0.0 && pos1 != pos2 {
-                        let d = (pos1 - pos2).normalize() * 0.25;
+                    if dist == 0.0 && pos != pos2 {
+                        let d = (pos - pos2).normalize() * 0.25;
                         game.characters[i].position[0] += d.x;
                         game.characters[i].position[1] += d.y;
                         game.characters[i].velocity[0] *= -0.5;
