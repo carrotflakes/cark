@@ -66,6 +66,8 @@ pub fn system_player_move() -> impl FnMut(&mut Game, &Input, &mut Communication)
             .iter()
             .position(|c| c.id() == game.player_id)
         {
+            let chunk_id = game.characters[i].chunk_id;
+
             let fract = fract.powf(dt);
             game.characters[i].velocity = [
                 game.characters[i].velocity[0] * fract + ddx * dt,
@@ -83,7 +85,7 @@ pub fn system_player_move() -> impl FnMut(&mut Game, &Input, &mut Communication)
                 let cy = game.characters[i].position[1] as i32;
                 let rect = [cx - 1, cy - 1, cx + 2, cy + 2];
                 let shapes: Vec<_> = field
-                    .view(game.characters[i].chunk_id, rect)
+                    .view(chunk_id, rect)
                     .iter()
                     .enumerate()
                     .filter_map(|(i, &v)| {
@@ -138,12 +140,28 @@ pub fn system_player_move() -> impl FnMut(&mut Game, &Input, &mut Communication)
             game.characters[i].position[0] += game.characters[i].velocity[0] * dt;
             game.characters[i].position[1] += game.characters[i].velocity[1] * dt;
 
+            let chunks_around: Vec<_> = game
+                .field()
+                .chunks_around(chunk_id)
+                .into_iter()
+                .map(|c| (c.0, c.1.map(|c| c.id)))
+                .collect();
             for j in 0..game.characters.len() {
                 if i == j {
                     continue;
                 }
 
-                let pos2 = parry2d::na::Vector2::from(game.characters[j].position);
+                let Some((rel, _)) = chunks_around.iter().find(|c| {
+                    c.1.map(|id| id == game.characters[j].chunk_id)
+                        .unwrap_or_default()
+                }) else {
+                    continue;
+                };
+
+                let pos2 = parry2d::na::Vector2::from([
+                    game.characters[j].position[0] + rel[0] as f32 * CHUNK_SIZE as f32,
+                    game.characters[j].position[1] + rel[1] as f32 * CHUNK_SIZE as f32,
+                ]);
                 if let Ok(dist) = parry2d::query::details::distance(
                     &parry2d::na::Isometry2::new(pos, 0.0),
                     &character_shape,
@@ -160,6 +178,7 @@ pub fn system_player_move() -> impl FnMut(&mut Game, &Input, &mut Communication)
                 }
             }
 
+            // Move to the next chunk
             {
                 if game.characters[i].position[0] < 0.0 {
                     if let Some(chunk_id) = game
@@ -251,11 +270,11 @@ pub fn system_compute_ups() -> impl FnMut(&mut Game, &Input, &mut Communication)
 
 pub fn system_chunk_retriever() -> impl FnMut(&mut Game, &Input, &mut Communication) {
     let mut requested = vec![];
-    let mut time = 1.0;
+    let mut time = 0.5;
 
     return move |game, input, comm| {
         if time <= 0.0 {
-            time = 1.0;
+            time = 0.5;
             requested.clear();
         }
         time -= input.dt;

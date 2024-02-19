@@ -52,6 +52,45 @@ impl Field {
         self.chunks.get(&id)
     }
 
+    pub fn chunks_around(&self, id: ChunkId) -> [([i32; 2], Option<&Chunk>); 9] {
+        let mut chunks = [
+            ([-1, -1], None),
+            ([0, -1], None),
+            ([1, -1], None),
+            ([-1, 0], None),
+            ([0, 0], self.chunk(id)),
+            ([1, 0], None),
+            ([-1, 1], None),
+            ([0, 1], None),
+            ([1, 1], None),
+        ];
+        chunks[1].1 = chunks[4].1.and_then(|c| {
+            ChunkId::new(c.related[Direction::Top.to_number()]).and_then(|id| self.chunk(id))
+        });
+        chunks[3].1 = chunks[4].1.and_then(|c| {
+            ChunkId::new(c.related[Direction::Left.to_number()]).and_then(|id| self.chunk(id))
+        });
+        chunks[5].1 = chunks[4].1.and_then(|c| {
+            ChunkId::new(c.related[Direction::Right.to_number()]).and_then(|id| self.chunk(id))
+        });
+        chunks[7].1 = chunks[4].1.and_then(|c| {
+            ChunkId::new(c.related[Direction::Bottom.to_number()]).and_then(|id| self.chunk(id))
+        });
+        chunks[0].1 = chunks[1].1.and_then(|c| {
+            ChunkId::new(c.related[Direction::Left.to_number()]).and_then(|id| self.chunk(id))
+        });
+        chunks[2].1 = chunks[1].1.and_then(|c| {
+            ChunkId::new(c.related[Direction::Right.to_number()]).and_then(|id| self.chunk(id))
+        });
+        chunks[6].1 = chunks[7].1.and_then(|c| {
+            ChunkId::new(c.related[Direction::Left.to_number()]).and_then(|id| self.chunk(id))
+        });
+        chunks[8].1 = chunks[7].1.and_then(|c| {
+            ChunkId::new(c.related[Direction::Right.to_number()]).and_then(|id| self.chunk(id))
+        });
+        chunks
+    }
+
     // Generate a new chunk next to the given chunk
     pub fn generate_chunk(&mut self, id: ChunkId, direction: Direction) -> Option<ChunkId> {
         if self.chunk(id).unwrap().related[direction.to_number()] != 0 {

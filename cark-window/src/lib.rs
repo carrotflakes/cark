@@ -1,3 +1,5 @@
+use cark_common::field::CHUNK_SIZE;
+
 pub mod config;
 
 pub fn draw<C, G>(
@@ -43,14 +45,20 @@ pub fn draw<C, G>(
             }
         }
 
+        let chunks_around = game.field().chunks_around(my_character.chunk_id);
         for character in &game.characters {
-            if my_character.chunk_id != character.chunk_id {
+            let Some((rel, _)) = chunks_around
+                .iter()
+                .find(|c| c.1.map(|c| c.id == character.chunk_id).unwrap_or_default())
+            else {
                 continue;
-            }
+            };
 
             let transform = transform.trans(
-                (character.position[0] as f64 - rect[0] as f64) * cell_size,
-                (character.position[1] as f64 - rect[1] as f64) * cell_size,
+                rel[0] as f64 * cell_size * CHUNK_SIZE as f64
+                    + (character.position[0] as f64 - rect[0] as f64) * cell_size,
+                rel[1] as f64 * cell_size * CHUNK_SIZE as f64
+                    + (character.position[1] as f64 - rect[1] as f64) * cell_size,
             );
             ellipse(
                 [0.0, 0.0, 1.0, 1.0],
