@@ -1,3 +1,4 @@
+pub mod field;
 pub mod model;
 pub mod udp_stat;
 

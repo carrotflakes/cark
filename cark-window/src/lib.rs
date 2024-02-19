@@ -11,6 +11,65 @@ pub fn draw<C, G>(
 {
     use piston_window::{ellipse, rectangle, text, Transformed};
 
+    if let Some(my_character) = game.characters.iter().find(|c| c.id() == game.player_id) {
+        let cell_size = 10.0;
+        let size = 16;
+        let rect = [-size, -size, size * 2, size * 2];
+        let data = game.field().view(my_character.chunk_id, rect);
+        let transform: [[f64; 3]; 2] = ctx.transform.trans(
+            -cell_size * my_character.position[0] as f64,
+            -cell_size * my_character.position[1] as f64,
+        );
+        for y in 0..(rect[3] - rect[1]) {
+            for x in 0..(rect[2] - rect[0]) {
+                let cell = data[(y * (rect[2] - rect[0]) + x) as usize];
+                rectangle(
+                    match cell {
+                        0 => [0.1, 0.1, 0.1, 1.0],
+                        1 => [0.0, 0.5, 0.0, 1.0],
+                        2 => [1.0, 0.5, 0.0, 1.0],
+                        3 => [1.0, 0.0, 0.0, 1.0],
+                        _ => [0.9, 0.9, 0.9, 1.0],
+                    },
+                    [
+                        x as f64 * cell_size,
+                        y as f64 * cell_size,
+                        cell_size,
+                        cell_size,
+                    ],
+                    transform,
+                    g,
+                );
+            }
+        }
+
+        for character in &game.characters {
+            if my_character.chunk_id != character.chunk_id {
+                continue;
+            }
+
+            let transform = transform.trans(
+                (character.position[0] as f64 - rect[0] as f64) * cell_size,
+                (character.position[1] as f64 - rect[1] as f64) * cell_size,
+            );
+            ellipse(
+                [0.0, 0.0, 1.0, 1.0],
+                [-0.5 * cell_size, -0.5 * cell_size, cell_size, cell_size],
+                transform,
+                g,
+            );
+            text(
+                [0.0, 0.0, 0.0, 0.5],
+                12,
+                character.name(),
+                glyphs,
+                transform.trans(0.0, 0.0),
+                g,
+            )
+            .unwrap();
+        }
+    };
+
     text(
         [0.0, 0.0, 0.0, 1.0],
         12,
@@ -20,42 +79,4 @@ pub fn draw<C, G>(
         g,
     )
     .unwrap();
-
-    let width = game.field().width();
-    let height = game.field().height();
-    let data = game.field().data();
-    let transform = ctx.transform.trans(20.0, 20.0);
-    for x in 0..width {
-        for y in 0..height {
-            let cell = data[(y * width + x) as usize];
-            rectangle(
-                match cell {
-                    0 => [1.0, 0.0, 0.0, 1.0],
-                    1 => [1.0, 0.5, 0.0, 1.0],
-                    2 => [0.0, 0.5, 0.0, 1.0],
-                    _ => [0.9, 0.9, 0.9, 1.0],
-                },
-                [x as f64 * 10.0, y as f64 * 10.0, 10.0, 10.0],
-                transform,
-                g,
-            );
-        }
-    }
-
-    for character in &game.characters {
-        let transform = transform.trans(
-            character.position[0] as f64 * 10.0,
-            character.position[1] as f64 * 10.0,
-        );
-        ellipse([0.0, 0.0, 1.0, 1.0], [-5.0, -5.0, 10.0, 10.0], transform, g);
-        text(
-            [0.0, 0.0, 0.0, 0.5],
-            12,
-            character.name(),
-            glyphs,
-            transform.trans(0.0, 0.0),
-            g,
-        )
-        .unwrap();
-    }
 }

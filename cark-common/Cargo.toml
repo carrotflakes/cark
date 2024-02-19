@@ -5,4 +5,6 @@ edition = "2021"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
+serde-big-array = "0.5"
 postcard = { version = "1.0", features = ["use-std"] }
+rand = "0.8"

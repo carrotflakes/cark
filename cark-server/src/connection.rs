@@ -84,7 +84,6 @@ impl Connection {
                 Err(cark_common::PostcardError::DeserializeUnexpectedEnd) => break,
                 Err(e) => panic!("{:?}", e),
             };
-            self.buf.clear();
             push_incoming_event(IncomingEvent {
                 connection_id: self.id(),
                 sequence: 0,
