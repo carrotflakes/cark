@@ -1,3 +1,4 @@
+use cark_window::audio::{render_to_buffer, start_audio};
 use piston_window::prelude::*;
 
 fn main() {
@@ -14,7 +15,7 @@ fn main() {
     window.events.set_ups(60);
 
     let assets = find_folder::Search::ParentsThenKids(4, 2)
-        .for_folder("cark-client")
+        .for_folder("cark-window")
         .unwrap()
         .join("assets");
     let mut glyphs = window.load_font(assets.join("FiraSans-Bold.ttf")).unwrap();
@@ -28,6 +29,37 @@ fn main() {
     .unwrap();
     let mut client = cark_client::client::Client::new(communication);
     let mut input = cark_client::Input::new();
+
+    let audio_res = start_audio();
+    match &audio_res {
+        Ok(a) => {
+            let buffer: Vec<f32> = {
+                let file = assets.join("cark00.mid");
+
+                let data = std::fs::read(&file).unwrap();
+                let events = ezmid::parse(&data);
+
+                render_to_buffer(a.sample_rate as f32, events)
+            };
+
+            let channels = a.channels;
+            let mut i = 0;
+            *a.callback.lock().unwrap() = Box::new(move |len| {
+                let mut buf = vec![0.0; len];
+                for b in buf.chunks_mut(channels) {
+                    for b in b.iter_mut() {
+                        *b = buffer[i];
+                    }
+                    i = (i + 1) % buffer.len();
+                }
+                buf
+            });
+        }
+        Err(e) => {
+            log::error!("Failed to start audio: {:?}", e);
+        }
+    }
+    let audio_res = audio_res.ok();
 
     while let Some(event) = window.next() {
         touch_visualizer.event(window.size(), &event);

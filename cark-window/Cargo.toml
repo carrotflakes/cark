@@ -13,6 +13,9 @@ find_folder = "0"
 
 toml = "0.8"
 
+cpal = "0.15"
+ezmid = { git = "https://github.com/carrotflakes/ezmid", ref = "43cd4cd2cf6f4e1b283560f38d964d47ee649750" }
+
 log = "0.4"
 log-panics = { version = "2", features = ["with-backtrace"] }
 simplelog = "0.12"

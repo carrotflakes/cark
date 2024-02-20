@@ -1,6 +1,7 @@
-use cark_common::field::CHUNK_SIZE;
-
+pub mod audio;
 pub mod config;
+
+use cark_common::field::CHUNK_SIZE;
 
 pub fn draw<C, G>(
     glyphs: &mut C,
