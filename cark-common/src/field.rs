@@ -21,10 +21,18 @@ impl Chunk {
         let mut rng: rand::rngs::StdRng = rand::SeedableRng::seed_from_u64(id.get() as u64);
         data[0] = 3;
         for i in 0..8 {
-            data[i + 1] = if id.get() >> i & 1 == 1 { 3 } else { 2 };
+            data[i + 1] = if id.get() >> i & 1 == 1 { 4 } else { 2 };
         }
         for i in 9..data.len() {
-            data[i] = if rng.gen_bool(0.025) { 1 } else { 2 };
+            data[i] = if rng.gen_bool(0.025) {
+                1
+            } else {
+                if rng.gen_bool(0.2) {
+                    3
+                } else {
+                    2
+                }
+            };
         }
         Self {
             id,
