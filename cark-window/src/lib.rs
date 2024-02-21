@@ -5,6 +5,8 @@ use cark_common::field::CHUNK_SIZE;
 
 pub fn draw<C, G>(
     glyphs: &mut C,
+    image: &piston_window::Image,
+    tex_tiles: &G::Texture,
     ctx: piston_window::Context,
     g: &mut G,
     game: &mut cark_client::game::Game,
@@ -12,37 +14,51 @@ pub fn draw<C, G>(
     C: piston_window::character::CharacterCache,
     G: piston_window::Graphics<Texture = <C as piston_window::character::CharacterCache>::Texture>,
 {
-    use piston_window::{ellipse, rectangle, text, Transformed};
+    use piston_window::{ellipse, text, Transformed};
 
     if let Some(my_character) = game.characters.iter().find(|c| c.id() == game.player_id) {
-        let cell_size = 10.0;
+        let chip_size = 8.0;
+        let cell_size = 24.0;
         let size = 16;
         let rect = [-size, -size, size * 2, size * 2];
         let data = game.field().view(my_character.chunk_id, rect);
-        let transform: [[f64; 3]; 2] = ctx.transform.trans(
-            -cell_size * my_character.position[0] as f64,
-            -cell_size * my_character.position[1] as f64,
+        let transform = ctx.transform.trans(
+            -cell_size * (my_character.position[0] as f64 + size as f64)
+                + ctx.get_view_size()[0] / 2.0,
+            -cell_size * (my_character.position[1] as f64 + size as f64)
+                + ctx.get_view_size()[1] / 2.0,
         );
         for y in 0..(rect[3] - rect[1]) {
             for x in 0..(rect[2] - rect[0]) {
                 let cell = data[(y * (rect[2] - rect[0]) + x) as usize];
-                rectangle(
-                    match cell {
-                        0 => [0.1, 0.1, 0.1, 1.0],
-                        1 => [0.0, 0.5, 0.0, 1.0],
-                        2 => [1.0, 0.5, 0.0, 1.0],
-                        3 => [1.0, 0.0, 0.0, 1.0],
-                        _ => [0.9, 0.9, 0.9, 1.0],
-                    },
-                    [
-                        x as f64 * cell_size,
-                        y as f64 * cell_size,
-                        cell_size,
-                        cell_size,
-                    ],
-                    transform,
-                    g,
-                );
+                // rectangle(
+                //     match cell {
+                //         0 => [0.1, 0.1, 0.1, 1.0],
+                //         1 => [0.0, 0.5, 0.0, 1.0],
+                //         2 => [1.0, 0.5, 0.0, 1.0],
+                //         3 => [1.0, 0.0, 0.0, 1.0],
+                //         _ => [0.9, 0.9, 0.9, 1.0],
+                //     },
+                //     [
+                //         x as f64 * cell_size,
+                //         y as f64 * cell_size,
+                //         cell_size,
+                //         cell_size,
+                //     ],
+                //     transform,
+                //     g,
+                // );
+
+                image
+                    .src_rect([chip_size * cell as f64, 0.0, chip_size, chip_size])
+                    .draw(
+                        tex_tiles,
+                        &Default::default(),
+                        transform
+                            .trans(x as f64 * cell_size, y as f64 * cell_size)
+                            .scale(cell_size / chip_size * 1.01, cell_size / chip_size * 1.01),
+                        g,
+                    );
             }
         }
 
@@ -61,18 +77,39 @@ pub fn draw<C, G>(
                 rel[1] as f64 * cell_size * CHUNK_SIZE as f64
                     + (character.position[1] as f64 - rect[1] as f64) * cell_size,
             );
+            // ellipse(
+            //     [0.0, 0.0, 1.0, 1.0],
+            //     [-0.5 * cell_size, -0.5 * cell_size, cell_size, cell_size],
+            //     transform,
+            //     g,
+            // );
             ellipse(
-                [0.0, 0.0, 1.0, 1.0],
-                [-0.5 * cell_size, -0.5 * cell_size, cell_size, cell_size],
+                [0.0, 0.0, 0.0, 0.25],
+                [
+                    -0.5 * cell_size,
+                    0.5 * cell_size,
+                    cell_size,
+                    cell_size * 0.25,
+                ],
                 transform,
                 g,
             );
+            image
+                .src_rect([chip_size * 0.0, chip_size * 1.0, chip_size, chip_size])
+                .draw(
+                    tex_tiles,
+                    &Default::default(),
+                    transform
+                        .trans(-0.5 * cell_size, -0.5 * cell_size)
+                        .scale(cell_size / chip_size * 1.01, cell_size / chip_size * 1.01),
+                    g,
+                );
             text(
                 [0.0, 0.0, 0.0, 0.5],
                 12,
                 character.name(),
                 glyphs,
-                transform.trans(0.0, 0.0),
+                transform.trans(0.0, -cell_size),
                 g,
             )
             .unwrap();

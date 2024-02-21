@@ -1,5 +1,5 @@
 use cark_window::audio::{render_to_buffer, start_audio};
-use piston_window::prelude::*;
+use piston_window::{prelude::*, Image};
 
 fn main() {
     init_logger();
@@ -7,7 +7,7 @@ fn main() {
     let config = cark_window::config::load_config();
     log::info!("{:?}", &config);
 
-    let mut window: PistonWindow = WindowSettings::new("CARK", [800 / 2, 600 / 2])
+    let mut window: PistonWindow = WindowSettings::new("CARK", [640, 480])
         .exit_on_esc(true)
         .vsync(true)
         .build()
@@ -19,6 +19,15 @@ fn main() {
         .unwrap()
         .join("assets");
     let mut glyphs = window.load_font(assets.join("FiraSans-Bold.ttf")).unwrap();
+
+    let ref mut texture_context = window.create_texture_context();
+    let tex_tiles = Texture::from_path(
+        texture_context,
+        &assets.join("tile.png"),
+        Flip::None,
+        &TextureSettings::new().mag(Filter::Nearest),
+    )
+    .unwrap();
 
     let mut touch_visualizer = touch_visualizer::TouchVisualizer::new();
 
@@ -60,6 +69,8 @@ fn main() {
         }
     }
     let audio_res = audio_res.ok();
+
+    let image = Image::new();
 
     while let Some(event) = window.next() {
         touch_visualizer.event(window.size(), &event);
@@ -116,7 +127,7 @@ fn main() {
         window.draw_2d(&event, |ctx, g, device| {
             piston_window::clear([1.0; 4], g);
 
-            cark_window::draw(&mut glyphs, ctx, g, &mut client.game);
+            cark_window::draw(&mut glyphs, &image, &tex_tiles, ctx, g, &mut client.game);
 
             glyphs.factory.encoder.flush(device);
         });
