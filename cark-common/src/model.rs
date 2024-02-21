@@ -1,4 +1,8 @@
-use crate::{field::{Chunk, ChunkId, Direction}, udp_stat::Sequence};
+use crate::{
+    direction::Direction,
+    field::{Chunk, ChunkId},
+    udp_stat::Sequence,
+};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Message {

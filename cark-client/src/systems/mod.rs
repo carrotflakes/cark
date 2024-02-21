@@ -1,5 +1,6 @@
 use cark_common::{
-    field::{ChunkId, Direction, CHUNK_SIZE},
+    direction::Direction,
+    field::{ChunkId, CHUNK_SIZE},
     model,
 };
 
