@@ -5,4 +5,5 @@ members = [
   "cark-client",
   "cark-common",
   "cark-window",
+  "cark-bot",
 ]

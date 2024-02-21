@@ -13,13 +13,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(mut communication: Communication) -> Self {
-        let name = (std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis()
-            % 1000)
-            .to_string();
+    pub fn new(mut communication: Communication, name: String) -> Self {
         communication.push_tcp_event(cark_common::model::ClientMessage::Join(
             cark_common::model::Join { name },
         ));

@@ -29,6 +29,10 @@ impl Game {
         log::debug!("Chunk received: {:?}", chunk);
         self.field.set_existed_chunk(chunk, true);
     }
+
+    pub fn player_character(&self) -> Option<&Character> {
+        self.characters.iter().find(|c| c.id() == self.player_id)
+    }
 }
 
 pub struct Character {

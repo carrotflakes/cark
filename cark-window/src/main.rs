@@ -31,12 +31,19 @@ fn main() {
 
     let mut touch_visualizer = touch_visualizer::TouchVisualizer::new();
 
+    let name = (std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis()
+        % 1000)
+        .to_string();
+
     let communication = cark_client::communication::Communication::new(
         &config.server_tcp_addr,
         &config.server_udp_addr,
     )
     .unwrap();
-    let mut client = cark_client::client::Client::new(communication);
+    let mut client = cark_client::client::Client::new(communication, name);
     let mut input = cark_client::Input::new();
 
     let audio_res = start_audio();
@@ -76,43 +83,29 @@ fn main() {
         touch_visualizer.event(window.size(), &event);
 
         if let Some(Button::Keyboard(key)) = event.press_args() {
-            match key {
-                Key::W => {
-                    input.key_down[0] = true;
-                }
-                Key::S => {
-                    input.key_down[1] = true;
-                }
-                Key::A => {
-                    input.key_down[2] = true;
-                }
-                Key::D => {
-                    input.key_down[3] = true;
-                }
-                Key::Space => {
-                    input.key_down[4] = true;
-                }
-                _ => {}
+            if let Some(k) = match key {
+                Key::W => Some(0),
+                Key::S => Some(1),
+                Key::A => Some(2),
+                Key::D => Some(3),
+                Key::Space => Some(4),
+                Key::Escape => Some(5),
+                _ => None,
+            } {
+                input.key_down[k] = true;
             }
         }
         if let Some(Button::Keyboard(key)) = event.release_args() {
-            match key {
-                Key::W => {
-                    input.key_up[0] = true;
-                }
-                Key::S => {
-                    input.key_up[1] = true;
-                }
-                Key::A => {
-                    input.key_up[2] = true;
-                }
-                Key::D => {
-                    input.key_up[3] = true;
-                }
-                Key::Space => {
-                    input.key_up[4] = true;
-                }
-                _ => {}
+            if let Some(k) = match key {
+                Key::W => Some(0),
+                Key::S => Some(1),
+                Key::A => Some(2),
+                Key::D => Some(3),
+                Key::Space => Some(4),
+                Key::Escape => Some(5),
+                _ => None,
+            } {
+                input.key_up[k] = true;
             }
         }
         if let Some(args) = event.update_args() {
@@ -120,8 +113,7 @@ fn main() {
 
             client.process(&input);
 
-            input.key_down = [false; 5];
-            input.key_up = [false; 5];
+            input.reset();
         }
 
         window.draw_2d(&event, |ctx, g, device| {

@@ -301,6 +301,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "cark-bot"
+version = "0.1.0"
+dependencies = [
+ "cark-client",
+ "cark-common",
+ "log",
+ "log-panics",
+ "serde",
+ "simplelog",
+ "toml",
+]
+
+[[package]]
 name = "cark-client"
 version = "0.1.0"
 dependencies = [
