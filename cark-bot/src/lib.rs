@@ -1,6 +1,7 @@
 pub mod config;
 
 use cark_client::{game::Game, Input};
+use cark_common::field::CHUNK_SIZE;
 
 pub fn system_bot() -> impl FnMut(&Game, &mut Input) {
     let mut dir = None;
@@ -9,19 +10,32 @@ pub fn system_bot() -> impl FnMut(&Game, &mut Input) {
         let Some(character) = game.player_character() else {
             return;
         };
+        let chunks_around = game.field().chunks_around(character.chunk_id);
 
         let mut new_dir = None;
 
-        game.characters.iter().for_each(|c| {
-            if c.id() == game.player_id || c.chunk_id != character.chunk_id {
+        game.characters.iter().for_each(|chara| {
+            if chara.id() == game.player_id {
                 return;
             }
 
-            let dx = c.position[0] - character.position[0];
-            let dy = c.position[1] - character.position[1];
+            let Some(pos) = chunks_around.iter().find_map(|(p, c)| {
+                c.and_then(|c| {
+                    if c.id == chara.chunk_id {
+                        Some(p)
+                    } else {
+                        None
+                    }
+                })
+            }) else {
+                return;
+            };
+
+            let dx = chara.position[0] + pos[0] as f32 * CHUNK_SIZE as f32 - character.position[0];
+            let dy = chara.position[1] + pos[1] as f32 * CHUNK_SIZE as f32 - character.position[1];
             let distance = (dx * dx + dy * dy).sqrt();
 
-            if distance < 10.0 {
+            if distance < 6.0 {
                 if dx.abs() > dy.abs() {
                     if dx > 0.0 {
                         new_dir = Some(3);
