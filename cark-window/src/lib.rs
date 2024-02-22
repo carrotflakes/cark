@@ -126,3 +126,38 @@ pub fn draw<C, G>(
     )
     .unwrap();
 }
+
+pub fn system_step_se(
+) -> impl FnMut(&Option<audio::AudioSystem>, &mut cark_client::game::Game, &cark_client::Input) {
+    let buf_se_step = audio::generate_pop();
+
+    let mut step_counts = std::collections::HashMap::<u64, f32>::new();
+
+    move |audio_sys, game, input| {
+        for chara in &game.characters {
+            let is_player = chara.id() == game.player_id;
+            let step_count = step_counts.entry(chara.id()).or_insert(1.0);
+
+            let d = (chara.velocity[0].powi(2) + chara.velocity[1].powi(2)).sqrt();
+            if d > 0.1 {
+                *step_count -= d * input.dt * 0.5;
+                if *step_count < 0.0 {
+                    if let Some(audio_sys) = &audio_sys {
+                        audio_sys.items.lock().unwrap().push(
+                            audio::AudioItem::new_se(buf_se_step.clone())
+                                .volume(16.0f32.recip() * if is_player { 1.0 } else { 0.5 })
+                                .pitch(
+                                    0.9 + ((chara.position[0] * 5.0 + chara.position[1] * 6.0)
+                                        % 1.0)
+                                        * 0.2,
+                                ),
+                        );
+                    }
+                    *step_count += 1.0;
+                }
+            } else {
+                *step_count = 1.0;
+            }
+        }
+    }
+}

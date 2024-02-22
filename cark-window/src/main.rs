@@ -1,8 +1,6 @@
-use std::sync::Arc;
-
-use cark_window::audio::{
-    audio_buffer::AudioBufferRef, generate_pop, render_to_buffer, AudioBuffer, AudioItem,
-    AudioSystem,
+use cark_window::{
+    audio::{audio_buffer::AudioBufferRef, render_to_buffer, AudioBuffer, AudioItem, AudioSystem},
+    system_step_se,
 };
 use piston_window::{prelude::*, Image};
 
@@ -59,7 +57,6 @@ fn main() {
 
         AudioBufferRef::new(AudioBuffer::new(44100.0, render_to_buffer(44100.0, events)))
     };
-    let buf_se_step = generate_pop();
 
     let audio_sys = AudioSystem::start();
     match &audio_sys {
@@ -75,9 +72,9 @@ fn main() {
     }
     let audio_sys = audio_sys.ok();
 
-    let mut step_count = 1.0;
-
     let image = Image::new();
+
+    let mut step_se = system_step_se();
 
     while let Some(event) = window.next() {
         touch_visualizer.event(window.size(), &event);
@@ -115,29 +112,7 @@ fn main() {
 
             input.reset();
 
-            if let Some(player) = client.game.player_character() {
-                let d = (player.velocity[0].powi(2) + player.velocity[1].powi(2)).sqrt();
-                if d > 0.1 {
-                    step_count -= d * input.dt * 0.5;
-                    if step_count < 0.0 {
-                        if let Some(audio_sys) = &audio_sys {
-                            audio_sys.items.lock().unwrap().push(
-                                AudioItem::new_se(buf_se_step.clone())
-                                    .volume(16.0f32.recip())
-                                    .pitch(
-                                        0.9 + ((player.position[0] * 5.0
-                                            + player.position[1] * 6.0)
-                                            % 1.0)
-                                            * 0.2,
-                                    ),
-                            );
-                        }
-                        step_count += 1.0;
-                    }
-                } else {
-                    step_count = 1.0;
-                }
-            }
+            step_se(&audio_sys, &mut client.game, &input);
         }
 
         window.draw_2d(&event, |ctx, g, device| {
